@@ -62,7 +62,7 @@ describe('INVARIAN ISOLASI — bot tidak pernah menyentuh pemain', () => {
     const dengan = maju(stateAwal('isolasi', 'asn-3b'), 50);
     const tanpa = maju({ ...stateAwal('isolasi', 'asn-3b'), bot: [] }, 50);
 
-    const inti = ({ bot: _bot, ...sisa }: StatePermainan) => sisa;
+    const inti = (s: StatePermainan) => ({ ...s, bot: [] });
     expect(inti(dengan)).toEqual(inti(tanpa));
   });
 
