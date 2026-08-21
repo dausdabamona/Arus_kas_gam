@@ -65,6 +65,13 @@ export const KARTU_GUNCANG: readonly KartuGuncang[] = [
     syarat: 'ada-riwayat-ditolak',
   },
   {
+    id: 'grup-keluarga',
+    judul: 'Foto rumah baru di grup keluarga',
+    teks: 'Sepupumu pindah. Semua mengucapkan selamat, dan kamu ikut mengetik selamat.',
+    pemicu: 'pemisahan',
+    efek: { jenis: 'tanpa-efek' },
+  },
+  {
     id: 'saudara-pinjam',
     judul: 'Saudara datang meminjam uang',
     teks: 'Jumlahnya tidak kecil, dan menolak keluarga rasanya bukan pilihan.',

@@ -9,6 +9,17 @@ describe('data kartu guncang', () => {
     expect(KARTU_GUNCANG.length).toBeGreaterThanOrEqual(8);
   });
 
+  /**
+   * Satu kartu per pemicu membuat pemain hafal setelah dua kali mendarat.
+   * Penyaringan per pemicu di reducer baru punya arti kalau ada yang dipilih.
+   */
+  it('menyediakan minimal dua kartu untuk setiap pemicu', () => {
+    for (const pemicu of PEMICU) {
+      const sepemicu = KARTU_GUNCANG.filter((k) => k.pemicu === pemicu);
+      expect(sepemicu.length, `pemicu ${pemicu}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('memakai id yang unik', () => {
     expect(new Set(KARTU_GUNCANG.map((k) => k.id)).size).toBe(KARTU_GUNCANG.length);
   });
