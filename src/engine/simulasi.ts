@@ -7,29 +7,36 @@ import {
   arusKasBulanan,
 } from './keuangan';
 import { petakDi, hitungGajianDilewati } from './papan';
+import { KETUKAN_PER_GILIRAN } from './pasar';
 import type { StatePermainan } from '../types/state';
 import type { Kejadian } from '../types/kejadian';
 
-export type Kebijakan = 'hati-hati' | 'serakah' | 'seimbang';
+export type Kebijakan =
+  | 'hati-hati'
+  | 'serakah'
+  | 'seimbang'
+  | 'pasar-indeks'
+  | 'pasar-saham'
+  | 'pasar-panik';
 
 export interface HasilSimulasi {
   giliran: number;
   akhir: 'lolos' | 'bangkrut' | 'batas-giliran';
   puncakPengeluaran: number;
   puncakUtang: number;
-  /**
-   * Rata-rata kas masuk dari petak GAJIAN per giliran, diukur dari jalannya
-   * simulasi. Dihitung kotor terhadap biaya anak: biaya anak sudah dipotong
-   * di dalam arus kas bulanan, jadi kalau tidak ditambahkan kembali di sini
-   * ia akan terhitung dua kali saat masuk ke `drainPerGiliran`.
-   */
+  /** Rata-rata kas masuk dari petak GAJIAN per giliran, diukur dari jalannya simulasi. */
   pemasukanPerGiliran: number;
   /**
-   * Rata-rata kas keluar acak per giliran: BIAYA_TAK_TERDUGA, AMAL, dan
-   * biaya anak yang benar-benar terbayar saat gajian. Diukur dari selisih
-   * saldo kas yang sungguh terjadi, bukan dari rumus peluang.
+   * Rata-rata kas keluar ACAK per giliran: BIAYA_TAK_TERDUGA dan AMAL saja.
+   * Biaya anak sengaja TIDAK dihitung di sini (§5.4): mendarat di TAMBAH_ANAK
+   * tidak mengurangi kas sama sekali — yang naik adalah pengeluaran bulanan,
+   * yang menurunkan arus kas bersih, yang menurunkan pembayaran Gajian.
+   * Efeknya sudah terhitung penuh di sisi pemasukan; memasukkannya lagi di
+   * sini berarti menghitungnya dua kali.
    */
   drainPerGiliran: number;
+  /** Nilai akhir seluruh aset pasar yang dipegang — dipakai Invarian 5. */
+  nilaiAkhirPasar: number;
   state: StatePermainan;
 }
 
@@ -51,6 +58,64 @@ function pilihTuas(
       ? (['jual', 'pinjam', 'hemat'] as const)
       : (['hemat', 'pinjam', 'jual'] as const);
   return urutan.find((t) => tersedia.includes(t)) ?? tersedia[0];
+}
+
+/** Instrumen yang dikejar tiap kebijakan pasar. */
+const INSTRUMEN_KEBIJAKAN: Partial<Record<Kebijakan, string>> = {
+  'pasar-indeks': 'reksa-indeks',
+  'pasar-saham': 'saham-individu',
+  'pasar-panik': 'saham-individu',
+};
+
+/**
+ * Keputusan pemain tiruan terhadap tawaran pasar, sekaligus ketukan ke berapa
+ * dia menekan. Kebijakan serakah sengaja menimbang sampai ketukan terakhir —
+ * itulah bentuk FOMO §8.1 dalam kode: makin lama menimbang, makin lain
+ * harga yang harus diterima.
+ */
+function putuskanPasar(
+  state: StatePermainan,
+  kebijakan: Kebijakan,
+  hargaGiliranLalu: Record<string, number>,
+): { aksi: 'beli' | 'jual' | 'lewat'; unit: number; ketukan: number } {
+  const instrumenId = state.pasarTerbuka;
+  if (!instrumenId) return { aksi: 'lewat', unit: 0, ketukan: 0 };
+
+  const harga = state.hargaPasar[instrumenId];
+  const dipegang = state.keuangan.aset.find((a) => a.instrumenId === instrumenId);
+  const unitDipegang = dipegang?.unit ?? 0;
+
+  const diburu = INSTRUMEN_KEBIJAKAN[kebijakan];
+  if (diburu) {
+    if (instrumenId !== diburu) return { aksi: 'lewat', unit: 0, ketukan: 0 };
+
+    // Panik: lepas seluruhnya begitu harganya turun lebih dari 15% DARI
+    // GILIRAN SEBELUMNYA. Membandingkannya dengan nilai aset tidak pernah
+    // menyala — aset dinilai ulang tiap giliran, jadi nilai/unit selalu
+    // sama dengan harga sekarang.
+    if (kebijakan === 'pasar-panik' && unitDipegang > 0) {
+      const lalu = hargaGiliranLalu[instrumenId];
+      if (lalu !== undefined && harga < lalu * 0.85) {
+        return { aksi: 'jual', unit: unitDipegang, ketukan: 0 };
+      }
+    }
+
+    return state.keuangan.saldoKas > harga * 2
+      ? { aksi: 'beli', unit: 1, ketukan: 0 }
+      : { aksi: 'lewat', unit: 0, ketukan: 0 };
+  }
+
+  if (kebijakan === 'hati-hati') return { aksi: 'lewat', unit: 0, ketukan: 0 };
+  if (kebijakan === 'serakah') {
+    return state.keuangan.saldoKas > harga
+      ? { aksi: 'beli', unit: 1, ketukan: KETUKAN_PER_GILIRAN }
+      : { aksi: 'lewat', unit: 0, ketukan: KETUKAN_PER_GILIRAN };
+  }
+
+  // Seimbang memutuskan cepat dan hanya bila kas tetap bersisa.
+  return state.keuangan.saldoKas - harga > 1_000_000
+    ? { aksi: 'beli', unit: 1, ketukan: 0 }
+    : { aksi: 'lewat', unit: 0, ketukan: 0 };
 }
 
 /** Keputusan pemain tiruan terhadap kartu yang terbuka. */
@@ -101,11 +166,9 @@ export function jalankanSimulasi(opsi: {
     const gajian = hitungGajianDilewati(sebelum.posisi, mata);
 
     const arus = arusKasBulanan(sebelum.keuangan);
-    const biayaAnak = sebelum.keuangan.biayaPerAnak * sebelum.keuangan.jumlahAnak;
     const kasDariGajian = arus * gajian;
 
-    totalPemasukan += (arus + biayaAnak) * gajian;
-    totalDrain += biayaAnak * gajian;
+    totalPemasukan += kasDariGajian;
 
     const petak = petakDi(sesudah.posisi);
     if (petak === 'BIAYA_TAK_TERDUGA' || petak === 'AMAL') {
@@ -116,10 +179,16 @@ export function jalankanSimulasi(opsi: {
   const rerata = () => ({
     pemasukanPerGiliran: giliranDijalani === 0 ? 0 : totalPemasukan / giliranDijalani,
     drainPerGiliran: giliranDijalani === 0 ? 0 : totalDrain / giliranDijalani,
+    nilaiAkhirPasar: state.keuangan.aset
+      .filter((a) => a.instrumenId !== undefined)
+      .reduce((jml, a) => jml + a.nilai, 0),
   });
+
+  let hargaGiliranLalu: Record<string, number> = { ...state.hargaPasar };
 
   for (let giliran = 0; giliran < opsi.maksGiliran; giliran++) {
     const sebelumDadu = state;
+    hargaGiliranLalu = { ...sebelumDadu.hargaPasar };
     kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
     ukur(sebelumDadu, state);
 
@@ -127,6 +196,14 @@ export function jalankanSimulasi(opsi: {
       kirim({
         tipe: 'PUTUSKAN',
         isi: { kartuId: state.kartuTerbuka.id, pilihan: putuskan(state, opsi.kebijakan) },
+      });
+    }
+
+    if (state.pasarTerbuka) {
+      const { aksi, unit, ketukan } = putuskanPasar(state, opsi.kebijakan, hargaGiliranLalu);
+      kirim({
+        tipe: 'TRANSAKSI_PASAR',
+        isi: { instrumenId: state.pasarTerbuka, aksi, unit, ketukan },
       });
     }
 

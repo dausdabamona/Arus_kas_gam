@@ -5,7 +5,7 @@ import {
   arusKasBulanan,
   jualAset,
   lunasiPinjaman,
-  penghasilanBebas,
+  nilaiUlangAsetPasar,
   perluTindakanDarurat,
   tuasTersedia,
   berhemat,
@@ -13,7 +13,9 @@ import {
   sisaPlafonPinjaman,
   type KondisiKeuangan,
 } from './keuangan';
+import { gerakkanHarga, hargaAwalSemua, hargaPadaKetukan } from './pasar';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
+import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { cariProfesi } from '../data/profesi';
 import type { Kejadian } from '../types/kejadian';
 import { JUMLAH_PETAK, type StatePermainan } from '../types/state';
@@ -21,24 +23,23 @@ import type { KartuPeluang } from '../types/kartu';
 import type { Prng } from './prng';
 
 /**
- * Rentang biaya tak terduga, dalam persepuluhan PENGHASILAN BEBAS
- * (gaji dikurangi biaya hidup tetap) — bukan gaji. Gaji dan daya tahan
- * adalah dua satuan berbeda: guru bergaji Rp 2,2 juta hanya bersisa
- * Rp 400 ribu, jadi skala-ke-gaji menghukumnya jauh lebih berat daripada
- * ASN. Angkanya terikat Invarian 3 di `simulasi.test.ts`.
+ * Rentang biaya tak terduga, dalam persepuluhan SKALA GUNCANGAN — arus kas
+ * bersih awal profesi, dikunci sekali di awal permainan (§5.4 Invarian 3).
+ * Angkanya terikat Invarian 3 di `simulasi.test.ts`.
  */
 const BIAYA_PENGALI_MIN = 2; // 0,2x penghasilan bebas
 const BIAYA_PENGALI_MAKS = 4; // 0,4x penghasilan bebas
 
-/** Batas derma, sebagai kelipatan penghasilan bebas. */
+/** Batas derma, sebagai kelipatan skala guncangan. */
 const AMAL_BATAS_PENGHASILAN = 0.3;
 
 /**
- * Batas jumlah anak. Tanpa batas, petak TAMBAH_ANAK menaikkan pengeluaran
- * permanen tiap ~24 giliran sampai profesi mana pun pasti bangkrut — dan
- * satu permainan hanya 20–35 menit, jadi belasan anak juga tidak masuk akal.
+ * Batas jumlah anak (§5.4). Tanpa batas, pengeluaran naik permanen tiap
+ * putaran papan dan kebangkrutan menjadi pasti terlepas dari keterampilan
+ * pemain. Bebannya dijaga Invarian 4: 3 x biaya per anak <= 60% arus kas
+ * bersih awal.
  */
-export const MAKS_ANAK = 2;
+export const MAKS_ANAK = 3;
 
 /**
  * Tuas yang dipilih mesin bila pemain tidak menyebutkan satu pun: tekan
@@ -49,6 +50,7 @@ const URUTAN_TUAS_BAWAAN = ['hemat', 'pinjam', 'jual'] as const;
 
 /** State kosong sebelum kejadian apa pun dijalankan. */
 export function stateAwal(seed: string, profesiId: string): StatePermainan {
+  const kondisiAwal = strukturUlang(cariProfesi(profesiId).kondisiAwal);
   return {
     seed,
     profesiId,
@@ -56,8 +58,11 @@ export function stateAwal(seed: string, profesiId: string): StatePermainan {
     posisi: 0,
     riwayatDadu: [],
     status: 'berjalan',
-    keuangan: strukturUlang(cariProfesi(profesiId).kondisiAwal),
+    keuangan: kondisiAwal,
+    hargaPasar: hargaAwalSemua(),
+    skalaGuncangan: Math.max(1, arusKasBulanan(kondisiAwal)),
     kartuTerbuka: null,
+    pasarTerbuka: null,
   };
 }
 
@@ -86,7 +91,7 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
       // supaya beratnya terasa sama di semua profesi tanpa penyetelan satu
       // per satu, dan tanpa menghukum profesi bermargin tipis.
       const pengali = bilanganAcak(prng, BIAYA_PENGALI_MIN, BIAYA_PENGALI_MAKS) / 10;
-      const biaya = Math.round(penghasilanBebas(state.keuangan) * pengali);
+      const biaya = Math.round(state.skalaGuncangan * pengali);
       return {
         ...state,
         keuangan: { ...state.keuangan, saldoKas: state.keuangan.saldoKas - biaya },
@@ -97,7 +102,7 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
       // Sepersepuluh kas, tapi dibatasi terhadap penghasilan bebas. Tanpa
       // batas ini kas yang menumpuk membuat derma tumbuh tanpa henti sampai
       // menyerap seluruh pemasukan — Invarian 3 lalu mustahil dipenuhi.
-      const batas = penghasilanBebas(state.keuangan) * AMAL_BATAS_PENGHASILAN;
+      const batas = state.skalaGuncangan * AMAL_BATAS_PENGHASILAN;
       const derma = Math.max(0, Math.round(Math.min(state.keuangan.saldoKas * 0.1, batas)));
       return {
         ...state,
@@ -112,9 +117,10 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
         keuangan: { ...state.keuangan, jumlahAnak: state.keuangan.jumlahAnak + 1 },
       };
 
-    // PASAR ditangani Fase 3, GUNCANG ditangani Fase 5.
-    // Di fase ini keduanya sengaja tidak berefek, dan itu diuji.
     case 'PASAR':
+      return { ...state, pasarTerbuka: ambilSatu(prng, INSTRUMEN).id };
+
+    // GUNCANG ditangani Fase 5; di fase ini sengaja tidak berefek, dan itu diuji.
     case 'GUNCANG':
     case 'GAJIAN':
       return state;
@@ -169,15 +175,18 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
       const gajian = hitungGajianDilewati(state.posisi, mata);
       const arus = arusKasBulanan(state.keuangan);
 
+      const hargaBaru = gerakkanHarga(state.seed, kejadian.t, state.hargaPasar);
       const bergerak: StatePermainan = {
         ...state,
         giliran: state.giliran + 1,
         posisi: posisiSetelah(state.posisi, mata),
         riwayatDadu: [...state.riwayatDadu, mata],
-        keuangan: {
-          ...state.keuangan,
-          saldoKas: state.keuangan.saldoKas + arus * gajian,
-        },
+        hargaPasar: hargaBaru,
+        keuangan: nilaiUlangAsetPasar(
+          { ...state.keuangan, saldoKas: state.keuangan.saldoKas + arus * gajian },
+          hargaBaru,
+          (id) => cariInstrumen(id)?.imbalBulanan ?? 0,
+        ),
       };
 
       return efekPetak(bergerak, prng);
@@ -189,6 +198,75 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         return { ...state, kartuTerbuka: null };
       }
       return { ...state, keuangan: ambilKartu(state.keuangan, kartu), kartuTerbuka: null };
+    }
+
+    case 'TRANSAKSI_PASAR': {
+      const { instrumenId, aksi, unit, ketukan } = kejadian.isi;
+      const instrumen = cariInstrumen(instrumenId);
+      if (!instrumen || aksi === 'lewat' || unit <= 0) {
+        return { ...state, pasarTerbuka: null };
+      }
+
+      // Harga dihitung ulang dari ketukan, tidak pernah diambil dari isi
+      // kejadian — event log tidak boleh memuat angka yang bisa dipalsukan.
+      const harga = hargaPadaKetukan(
+        state.seed, kejadian.t, instrumenId, state.hargaPasar[instrumenId], ketukan,
+      );
+      const nilaiTransaksi = harga * unit;
+      const aset = state.keuangan.aset;
+      const indeks = aset.findIndex((a) => a.instrumenId === instrumenId);
+
+      if (aksi === 'beli') {
+        if (state.keuangan.saldoKas < nilaiTransaksi) {
+          return { ...state, pasarTerbuka: null };
+        }
+        const unitBaru = (indeks >= 0 ? aset[indeks].unit ?? 0 : 0) + unit;
+        const barisBaru = {
+          id: indeks >= 0 ? aset[indeks].id : `pasar-${instrumenId}`,
+          nama: instrumen.nama,
+          nilai: harga * unitBaru,
+          arusKasBulanan: Math.round(harga * unitBaru * instrumen.imbalBulanan),
+          instrumenId,
+          unit: unitBaru,
+        };
+        return {
+          ...state,
+          pasarTerbuka: null,
+          keuangan: {
+            ...state.keuangan,
+            saldoKas: state.keuangan.saldoKas - nilaiTransaksi,
+            aset: indeks >= 0
+              ? aset.map((a, i) => (i === indeks ? barisBaru : a))
+              : [...aset, barisBaru],
+          },
+        };
+      }
+
+      if (indeks < 0) return { ...state, pasarTerbuka: null };
+      const dimiliki = aset[indeks].unit ?? 0;
+      const dijual = Math.min(unit, dimiliki);
+      const sisa = dimiliki - dijual;
+
+      return {
+        ...state,
+        pasarTerbuka: null,
+        keuangan: {
+          ...state.keuangan,
+          saldoKas: state.keuangan.saldoKas + harga * dijual,
+          aset: sisa === 0
+            ? aset.filter((_, i) => i !== indeks)
+            : aset.map((a, i) =>
+                i === indeks
+                  ? {
+                      ...a,
+                      unit: sisa,
+                      nilai: harga * sisa,
+                      arusKasBulanan: Math.round(harga * sisa * instrumen.imbalBulanan),
+                    }
+                  : a,
+              ),
+        },
+      };
     }
 
     case 'LUNASI':

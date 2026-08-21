@@ -14,6 +14,9 @@ export interface Aset {
   nilai: number;
   /** Arus kas bersih tiap bulan. Boleh nol (hanya tumbuh) atau negatif (beban perawatan). */
   arusKasBulanan: number;
+  /** Diisi hanya untuk aset yang dibeli lewat petak Pasar. */
+  instrumenId?: string;
+  unit?: number;
 }
 
 /** Satu utang yang menempel pada pemain. */
@@ -280,4 +283,24 @@ export function jualAset(k: KondisiKeuangan, asetId: string, hargaJual?: number)
 export function progresPelunasan(l: Liabilitas): number {
   if (l.pokokAwal === 0) return 1;
   return (l.pokokAwal - l.sisaUtang) / l.pokokAwal;
+}
+
+/**
+ * Menyegarkan nilai aset pasar mengikuti harga terbaru. Arus kas bulanannya
+ * ikut disegarkan karena imbal hasil dihitung dari nilai, bukan dari harga
+ * beli — bunga deposito naik saat saldonya naik.
+ */
+export function nilaiUlangAsetPasar(
+  kondisi: KondisiKeuangan,
+  harga: Record<string, number>,
+  imbal: (instrumenId: string) => number,
+): KondisiKeuangan {
+  return {
+    ...kondisi,
+    aset: kondisi.aset.map((a) => {
+      if (!a.instrumenId || a.unit === undefined) return a;
+      const nilai = harga[a.instrumenId] * a.unit;
+      return { ...a, nilai, arusKasBulanan: Math.round(nilai * imbal(a.instrumenId)) };
+    }),
+  };
 }

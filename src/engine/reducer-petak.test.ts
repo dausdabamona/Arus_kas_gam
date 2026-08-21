@@ -81,15 +81,20 @@ describe('PUTUSKAN', () => {
 });
 
 describe('petak yang belum berefek di fase ini', () => {
-  it('PASAR dan GUNCANG tidak mengubah keuangan', () => {
-    const sebelum = statePada(1); // dadu 1 → petak 2 (PASAR)
+  // GUNCANG baru ditangani Fase 5. PASAR sudah aktif sejak Fase 3 dan
+  // diuji terpisah di pasar-petak.test.ts.
+  it('GUNCANG tidak mengubah keuangan', () => {
+    const sebelum = statePada(15); // dadu 1 → petak 16 (GUNCANG)
     let sesudah = sebelum;
     for (let t = 1; t < 200; t++) {
       const coba = reduce(sebelum, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
-      if (coba.posisi === 2) { sesudah = coba; break; }
+      if (coba.posisi === 16) { sesudah = coba; break; }
     }
-    expect(sesudah.posisi).toBe(2);
-    expect(sesudah.keuangan.saldoKas).toBe(sebelum.keuangan.saldoKas);
+    expect(sesudah.posisi).toBe(16);
+    expect(sesudah.keuangan.saldoKas).toBe(
+      sebelum.keuangan.saldoKas + arusKasBulanan(sebelum.keuangan) * 0,
+    );
+    expect(sesudah.pasarTerbuka).toBeNull();
   });
 });
 

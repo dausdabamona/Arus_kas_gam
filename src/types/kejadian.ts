@@ -15,6 +15,16 @@ export type Kejadian =
   | { t: number; tipe: 'MULAI'; isi: { seed: string; profesiId: string } }
   | { t: number; tipe: 'LEMPAR_DADU'; isi: { pemainId: string } }
   | { t: number; tipe: 'PUTUSKAN'; isi: { kartuId: string; pilihan: 'ambil' | 'tolak' } }
+  | {
+      t: number;
+      tipe: 'TRANSAKSI_PASAR';
+      /**
+       * `ketukan` mencatat detik ke-berapa pemain menekan, bukan harganya.
+       * Harga dihitung ulang dari ketukan saat pemutaran ulang, sehingga
+       * tidak ada angka yang bisa dipalsukan di dalam event log.
+       */
+      isi: { instrumenId: string; aksi: 'beli' | 'jual' | 'lewat'; unit: number; ketukan: number };
+    }
   | { t: number; tipe: 'LUNASI'; isi: { liabilitasId: string; jumlah?: number } }
   | { t: number; tipe: 'JUAL_ASET'; isi: { asetId: string } }
   | { t: number; tipe: 'TINDAKAN_DARURAT'; isi: { tuas?: 'jual' | 'pinjam' | 'hemat'; asetId?: string } }

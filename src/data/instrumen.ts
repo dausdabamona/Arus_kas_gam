@@ -21,7 +21,7 @@ export const INSTRUMEN: readonly Instrumen[] = [
     keterangan: 'Mengikuti pasar secara keseluruhan. Naik pelan, jarang menarik perhatian.',
     hargaAwal: 1_000_000,
     volatilitasBulanan: 0.04,
-    driftBulanan: 0.008,
+    driftBulanan: 0.005,
     imbalBulanan: 0,
   },
   {
@@ -30,7 +30,7 @@ export const INSTRUMEN: readonly Instrumen[] = [
     keterangan: 'Bisa melonjak, bisa terjun. Dividen kecil dan tidak menentu.',
     hargaAwal: 1_000_000,
     volatilitasBulanan: 0.18,
-    driftBulanan: 0.004,
+    driftBulanan: 0.003,
     imbalBulanan: 0.002,
   },
   {
