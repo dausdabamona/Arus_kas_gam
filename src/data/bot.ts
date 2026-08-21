@@ -38,7 +38,11 @@ export const PROFIL_BOT: readonly ProfilBot[] = [
     id: 'pak-umar',
     nama: 'Pak Umar',
     profesiId: 'guru-honorer',
-    gayaKartu: 'hati-hati', // menolak tawaran besar — §11
+    // §11: "menolak tawaran besar" — bukan menolak semuanya. Gaya
+    // 'hati-hati' menolak setiap kartu, dan karena reksa indeks tidak
+    // memberi arus kas sama sekali, pendapatan pasif Umar mustahil naik
+    // dari nol lewat jalur mana pun: ia tidak akan pernah lolos.
+    gayaKartu: 'seimbang',
     gayaPasar: 'indeks',
     gayaDarurat: 'sadar', // hemat dulu
   },
