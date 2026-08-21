@@ -13,6 +13,7 @@ interface Props {
 export function LembarPelunasan({ liabilitasId, onTutup }: Props) {
   const state = usePermainan((t) => t.state);
   const kirim = usePermainan((t) => t.kirim);
+  const memproses = usePermainan((t) => t.memproses);
   if (!state || !liabilitasId) return null;
 
   const utang = state.keuangan.liabilitas.find((l) => l.id === liabilitasId);
@@ -66,13 +67,13 @@ export function LembarPelunasan({ liabilitasId, onTutup }: Props) {
         </p>
 
         <div className="flex flex-col gap-2">
-          <Tombol onClick={() => lunasi()} disabled={!bisaLunasPenuh} lebarPenuh>
+          <Tombol onClick={() => lunasi()} disabled={!bisaLunasPenuh || memproses} lebarPenuh>
             Lunasi penuh — {rupiah(utang.sisaUtang)}
           </Tombol>
           <Tombol
             jenis="kedua"
             onClick={() => lunasi(jumlahSebagian)}
-            disabled={jumlahSebagian <= 0}
+            disabled={jumlahSebagian <= 0 || memproses}
             lebarPenuh
           >
             Bayar sebagian — {rupiah(jumlahSebagian)}
