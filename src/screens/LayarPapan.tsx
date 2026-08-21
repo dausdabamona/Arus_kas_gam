@@ -5,6 +5,7 @@ import { Papan } from '../components/papan/Papan';
 import { KartuPeluangTampil } from '../components/papan/KartuPeluangTampil';
 import { GarisArus } from '../components/keuangan/GarisArus';
 import { LaporanKeuangan } from '../components/keuangan/LaporanKeuangan';
+import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
 import { LembarBawah } from '../components/ui/LembarBawah';
 import { Tombol } from '../components/ui/Tombol';
@@ -41,11 +42,7 @@ export function LayarPapan() {
         <Papan posisi={state.posisi} />
       </div>
 
-      {darurat && (
-        <p className="mt-4 rounded-lg bg-rugi/10 px-3 py-2 text-sm text-rugi">
-          Saldo kas minus. Jual aset atau ambil pinjaman darurat sebelum melanjutkan.
-        </p>
-      )}
+      {darurat && <LembarDarurat />}
 
       {lolos && (
         <p className="mt-4 rounded-lg bg-teal-muda px-3 py-3 text-sm font-semibold text-teal-tua">
@@ -56,7 +53,7 @@ export function LayarPapan() {
       <div className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md gap-2 bg-ivory p-4">
         <Tombol
           onClick={() => void kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } })}
-          disabled={state.kartuTerbuka !== null || memproses}
+          disabled={state.kartuTerbuka !== null || darurat || memproses}
           lebarPenuh
         >
           Lempar dadu{daduTerakhir ? ` · ${daduTerakhir}` : ''}
