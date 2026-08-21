@@ -7,7 +7,14 @@ import {
   arusKasBulanan,
 } from './keuangan';
 import { petakDi, hitungGajianDilewati } from './papan';
-import { KETUKAN_PER_GILIRAN } from './pasar';
+import {
+  putuskanKartu,
+  putuskanPasar,
+  urutanTuas,
+  type GayaKartu,
+  type GayaPasar,
+  type GayaDarurat,
+} from './kebijakan';
 import type { StatePermainan } from '../types/state';
 import type { Kejadian } from '../types/kejadian';
 
@@ -41,94 +48,18 @@ export interface HasilSimulasi {
 }
 
 /**
- * Tuas darurat yang dipilih pemain tiruan. Reducer memang punya tuas bawaan
- * (yang pertama tersedia), tapi memakainya di sini berarti pemain tiruan
- * selalu menjual aset produktifnya lebih dulu — persis refleks panik yang
- * game ini justru ingin ditunjukkan, dan mustahil konvergen. Pemain tiruan
- * memilih sadar: tekan pengeluaran dulu, pinjam kalau perlu, jual paling
- * akhir. Pemain sungguhan tetap memilih sendiri di layar.
+ * Tiap kebijakan simulasi tersusun dari tiga gaya di `kebijakan.ts` — rumah
+ * yang sama dengan yang dipakai bot. Peta ini satu-satunya tempat nama
+ * kebijakan lama diterjemahkan.
  */
-function pilihTuas(
-  tersedia: ReadonlyArray<'jual' | 'pinjam' | 'hemat'>,
-  kebijakan: Kebijakan,
-): 'jual' | 'pinjam' | 'hemat' {
-  // Serakah membiarkan refleks panik bekerja: jual dulu, pikir belakangan.
-  const urutan =
-    kebijakan === 'serakah'
-      ? (['jual', 'pinjam', 'hemat'] as const)
-      : (['hemat', 'pinjam', 'jual'] as const);
-  return urutan.find((t) => tersedia.includes(t)) ?? tersedia[0];
-}
-
-/** Instrumen yang dikejar tiap kebijakan pasar. */
-const INSTRUMEN_KEBIJAKAN: Partial<Record<Kebijakan, string>> = {
-  'pasar-indeks': 'reksa-indeks',
-  'pasar-saham': 'saham-individu',
-  'pasar-panik': 'saham-individu',
+const GAYA: Record<Kebijakan, { kartu: GayaKartu; pasar: GayaPasar; darurat: GayaDarurat }> = {
+  'hati-hati': { kartu: 'hati-hati', pasar: 'abaikan', darurat: 'sadar' },
+  serakah: { kartu: 'serakah', pasar: 'kejar', darurat: 'panik' },
+  seimbang: { kartu: 'seimbang', pasar: 'sisakan', darurat: 'sadar' },
+  'pasar-indeks': { kartu: 'seimbang', pasar: 'indeks', darurat: 'sadar' },
+  'pasar-saham': { kartu: 'seimbang', pasar: 'saham', darurat: 'sadar' },
+  'pasar-panik': { kartu: 'seimbang', pasar: 'panik', darurat: 'sadar' },
 };
-
-/**
- * Keputusan pemain tiruan terhadap tawaran pasar, sekaligus ketukan ke berapa
- * dia menekan. Kebijakan serakah sengaja menimbang sampai ketukan terakhir —
- * itulah bentuk FOMO §8.1 dalam kode: makin lama menimbang, makin lain
- * harga yang harus diterima.
- */
-function putuskanPasar(
-  state: StatePermainan,
-  kebijakan: Kebijakan,
-  hargaGiliranLalu: Record<string, number>,
-): { aksi: 'beli' | 'jual' | 'lewat'; unit: number; ketukan: number } {
-  const instrumenId = state.pasarTerbuka;
-  if (!instrumenId) return { aksi: 'lewat', unit: 0, ketukan: 0 };
-
-  const harga = state.hargaPasar[instrumenId];
-  const dipegang = state.keuangan.aset.find((a) => a.instrumenId === instrumenId);
-  const unitDipegang = dipegang?.unit ?? 0;
-
-  const diburu = INSTRUMEN_KEBIJAKAN[kebijakan];
-  if (diburu) {
-    if (instrumenId !== diburu) return { aksi: 'lewat', unit: 0, ketukan: 0 };
-
-    // Panik: lepas seluruhnya begitu harganya turun lebih dari 15% DARI
-    // GILIRAN SEBELUMNYA. Membandingkannya dengan nilai aset tidak pernah
-    // menyala — aset dinilai ulang tiap giliran, jadi nilai/unit selalu
-    // sama dengan harga sekarang.
-    if (kebijakan === 'pasar-panik' && unitDipegang > 0) {
-      const lalu = hargaGiliranLalu[instrumenId];
-      if (lalu !== undefined && harga < lalu * 0.85) {
-        return { aksi: 'jual', unit: unitDipegang, ketukan: 0 };
-      }
-    }
-
-    return state.keuangan.saldoKas > harga * 2
-      ? { aksi: 'beli', unit: 1, ketukan: 0 }
-      : { aksi: 'lewat', unit: 0, ketukan: 0 };
-  }
-
-  if (kebijakan === 'hati-hati') return { aksi: 'lewat', unit: 0, ketukan: 0 };
-  if (kebijakan === 'serakah') {
-    return state.keuangan.saldoKas > harga
-      ? { aksi: 'beli', unit: 1, ketukan: KETUKAN_PER_GILIRAN }
-      : { aksi: 'lewat', unit: 0, ketukan: KETUKAN_PER_GILIRAN };
-  }
-
-  // Seimbang memutuskan cepat dan hanya bila kas tetap bersisa.
-  return state.keuangan.saldoKas - harga > 1_000_000
-    ? { aksi: 'beli', unit: 1, ketukan: 0 }
-    : { aksi: 'lewat', unit: 0, ketukan: 0 };
-}
-
-/** Keputusan pemain tiruan terhadap kartu yang terbuka. */
-function putuskan(state: StatePermainan, kebijakan: Kebijakan): 'ambil' | 'tolak' {
-  const kartu = state.kartuTerbuka;
-  if (!kartu) return 'tolak';
-  if (kebijakan === 'hati-hati') return 'tolak';
-  if (kebijakan === 'serakah') return 'ambil';
-  // seimbang: ambil hanya bila arus kasnya positif dan kas tetap bersisa
-  return kartu.arusKasBulanan > 0 && state.keuangan.saldoKas - kartu.uangMuka > 1_000_000
-    ? 'ambil'
-    : 'tolak';
-}
 
 export function jalankanSimulasi(opsi: {
   seed: string;
@@ -195,12 +126,19 @@ export function jalankanSimulasi(opsi: {
     if (state.kartuTerbuka) {
       kirim({
         tipe: 'PUTUSKAN',
-        isi: { kartuId: state.kartuTerbuka.id, pilihan: putuskan(state, opsi.kebijakan) },
+        isi: {
+          kartuId: state.kartuTerbuka.id,
+          pilihan: putuskanKartu(state, GAYA[opsi.kebijakan].kartu),
+        },
       });
     }
 
     if (state.pasarTerbuka) {
-      const { aksi, unit, ketukan } = putuskanPasar(state, opsi.kebijakan, hargaGiliranLalu);
+      const { aksi, unit, ketukan } = putuskanPasar(
+        state,
+        hargaGiliranLalu,
+        GAYA[opsi.kebijakan].pasar,
+      );
       kirim({
         tipe: 'TRANSAKSI_PASAR',
         isi: { instrumenId: state.pasarTerbuka, aksi, unit, ketukan },
@@ -214,7 +152,14 @@ export function jalankanSimulasi(opsi: {
       const tersedia = tuasTersedia(state.keuangan);
       kirim({
         tipe: 'TINDAKAN_DARURAT',
-        isi: tersedia.length === 0 ? {} : { tuas: pilihTuas(tersedia, opsi.kebijakan) },
+        isi:
+          tersedia.length === 0
+            ? {}
+            : {
+                tuas:
+                  urutanTuas(GAYA[opsi.kebijakan].darurat).find((x) => tersedia.includes(x)) ??
+                  tersedia[0],
+              },
       });
       if (state === sebelum || state.status === 'selesai') break;
     }
