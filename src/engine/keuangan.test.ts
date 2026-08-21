@@ -8,6 +8,7 @@ import {
   kekayaanBersih,
   lolosTahapSatu,
   lunasiPinjaman,
+  progresPelunasan,
   pendapatanAktif,
   pendapatanPasif,
   perluTindakanDarurat,
@@ -26,8 +27,8 @@ function kondisiContoh(ubah: Partial<KondisiKeuangan> = {}): KondisiKeuangan {
     saldoKas: 2_000_000,
     aset: [],
     liabilitas: [
-      { id: 'kpr', nama: 'KPR subsidi', sisaUtang: 120_000_000, cicilanBulanan: 900_000 },
-      { id: 'motor', nama: 'Motor', sisaUtang: 6_000_000, cicilanBulanan: 500_000 },
+      { id: 'kpr', nama: 'KPR subsidi', sisaUtang: 120_000_000, cicilanBulanan: 900_000, pokokAwal: 120_000_000 },
+      { id: 'motor', nama: 'Motor', sisaUtang: 6_000_000, cicilanBulanan: 500_000, pokokAwal: 8_000_000 },
     ],
     ...ubah,
   };
@@ -202,6 +203,7 @@ describe('ambilPinjamanDarurat', () => {
     expect(pinjaman.sisaUtang).toBe(5_000_000);
     expect(pinjaman.cicilanBulanan).toBe(100_000);
     expect(pinjaman.bungaBulanan).toBe(0.02);
+    expect(pinjaman.pokokAwal).toBe(5_000_000);
   });
 
   it('menaikkan total pengeluaran sebesar cicilan baru', () => {
@@ -241,6 +243,16 @@ describe('lunasiPinjaman', () => {
   it('menurunkan cicilan mengikuti sisa pokok', () => {
     const k = lunasiPinjaman(berpinjaman(), idDarurat, 2_000_000);
     expect(k.liabilitas.find((l) => l.id === idDarurat)?.cicilanBulanan).toBe(60_000);
+  });
+
+  it('tidak mengubah pokok awal — itu catatan sejarah, bukan sisa saat ini', () => {
+    const k = lunasiPinjaman(berpinjaman(), idDarurat, 2_000_000);
+    expect(k.liabilitas.find((l) => l.id === idDarurat)?.pokokAwal).toBe(5_000_000);
+  });
+
+  it('membiarkan pokok awal utang bawaan tetap, walau cicilannya juga tetap', () => {
+    const k = lunasiPinjaman(kondisiContoh({ saldoKas: 10_000_000 }), 'motor', 1_000_000);
+    expect(k.liabilitas.find((l) => l.id === 'motor')?.pokokAwal).toBe(8_000_000);
   });
 
   it('melunasi penuh bila jumlah tidak disebut, dan utangnya hilang dari daftar', () => {
@@ -296,6 +308,34 @@ describe('lunasiPinjaman', () => {
 
   it('melempar galat bila utang tidak ada', () => {
     expect(() => lunasiPinjaman(berpinjaman(), 'tidak-ada')).toThrow('Utang tidak ditemukan');
+  });
+});
+
+describe('progresPelunasan', () => {
+  it('nol sebelum pembayaran apa pun', () => {
+    const k = kondisiContoh();
+    const motor = k.liabilitas.find((l) => l.id === 'motor')!;
+    expect(progresPelunasan(motor)).toBe(0.25); // sudah dicicil 2 juta dari pokok 8 juta
+  });
+
+  it('naik seiring pelunasan sebagian', () => {
+    const sesudah = lunasiPinjaman(kondisiContoh({ saldoKas: 10_000_000 }), 'motor', 4_000_000);
+    const motor = sesudah.liabilitas.find((l) => l.id === 'motor')!;
+    expect(progresPelunasan(motor)).toBe(0.75); // sisa 2 juta dari pokok 8 juta
+  });
+
+  it('nol persis saat utang baru dibuat — belum ada yang dibayar', () => {
+    const k = ambilPinjamanDarurat(kondisiContoh(), 5_000_000);
+    const pinjaman = k.liabilitas[k.liabilitas.length - 1];
+    expect(progresPelunasan(pinjaman)).toBe(0);
+  });
+
+  it('satu persis saat lunas penuh', () => {
+    const berpinjaman = ambilPinjamanDarurat(kondisiContoh(), 5_000_000);
+    const pinjaman = berpinjaman.liabilitas[berpinjaman.liabilitas.length - 1];
+    lunasiPinjaman(berpinjaman, pinjaman.id); // hasilnya: utang dibuang dari daftar
+    // progres dihitung dari objek sebelum dibuang, dengan sisaUtang nol
+    expect(progresPelunasan({ ...pinjaman, sisaUtang: 0 })).toBe(1);
   });
 });
 

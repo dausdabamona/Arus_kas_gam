@@ -28,6 +28,12 @@ export interface Liabilitas {
    * kredit motor tidak punya ini: cicilannya tetap, tidak ikut sisa pokok.
    */
   bungaBulanan?: number;
+  /**
+   * Pokok saat utang ini pertama tercatat. Catatan sejarah, tidak pernah
+   * berubah oleh pelunasan — dipakai semata untuk menampilkan kemajuan
+   * pelunasan (§5.3: "sisa pokok terhadap pokok awal").
+   */
+  pokokAwal: number;
 }
 
 /** Seluruh keadaan keuangan pemain pada satu titik waktu. */
@@ -134,6 +140,7 @@ export function ambilPinjamanDarurat(k: KondisiKeuangan, jumlah: number): Kondis
     sisaUtang: jumlah,
     cicilanBulanan: Math.round(jumlah * BUNGA_PINJAMAN_DARURAT),
     bungaBulanan: BUNGA_PINJAMAN_DARURAT,
+    pokokAwal: jumlah,
   };
   return {
     ...k,
@@ -192,4 +199,14 @@ export function jualAset(k: KondisiKeuangan, asetId: string, hargaJual?: number)
     saldoKas: k.saldoKas + (hargaJual ?? aset.nilai),
     aset: k.aset.filter((a) => a.id !== asetId),
   };
+}
+
+/**
+ * Kemajuan pelunasan, 0..1. Nol saat utang baru tercatat (belum ada yang
+ * dibayar), satu persis saat lunas penuh. Murni untuk tampilan (§5.3) —
+ * tidak pernah dipakai untuk mengubah aritmetika lain.
+ */
+export function progresPelunasan(l: Liabilitas): number {
+  if (l.pokokAwal === 0) return 1;
+  return (l.pokokAwal - l.sisaUtang) / l.pokokAwal;
 }
