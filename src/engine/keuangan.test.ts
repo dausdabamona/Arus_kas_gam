@@ -7,6 +7,7 @@ import {
   jualAset,
   kekayaanBersih,
   lolosTahapSatu,
+  lunasiPinjaman,
   pendapatanAktif,
   pendapatanPasif,
   perluTindakanDarurat,
@@ -69,6 +70,10 @@ describe('pendapatanPasif', () => {
     });
     expect(pendapatanPasif(k)).toBe(0);
   });
+
+  it('tidak menghitung saldo kas — kas menganggur tetap nol pendapatan pasif', () => {
+    expect(pendapatanPasif(kondisiContoh({ saldoKas: 500_000_000 }))).toBe(0);
+  });
 });
 
 describe('totalPendapatan', () => {
@@ -106,15 +111,19 @@ describe('arusKasBulanan', () => {
 });
 
 describe('kekayaanBersih', () => {
-  it('adalah nilai seluruh aset dikurangi sisa seluruh utang', () => {
+  it('adalah saldo kas ditambah nilai aset dikurangi sisa utang', () => {
     const k = kondisiContoh({
       aset: [{ id: 'ruko', nama: 'Ruko', nilai: 340_000_000, arusKasBulanan: 2_800_000 }],
     });
-    expect(kekayaanBersih(k)).toBe(214_000_000);
+    expect(kekayaanBersih(k)).toBe(216_000_000);
   });
 
-  it('negatif bila utang melampaui aset', () => {
-    expect(kekayaanBersih(kondisiContoh())).toBe(-126_000_000);
+  it('negatif bila utang melampaui kas dan aset', () => {
+    expect(kekayaanBersih(kondisiContoh())).toBe(-124_000_000);
+  });
+
+  it('ikut turun saat saldo kas minus', () => {
+    expect(kekayaanBersih(kondisiContoh({ saldoKas: -1_000_000 }))).toBe(-127_000_000);
   });
 });
 
@@ -130,7 +139,7 @@ describe('hitungLaporan', () => {
       totalPendapatan: 8_700_000,
       totalPengeluaran: 5_250_000,
       arusKasBulanan: 3_450_000,
-      kekayaanBersih: 214_000_000,
+      kekayaanBersih: 216_000_000,
     });
   });
 
@@ -163,6 +172,11 @@ describe('lolosTahapSatu', () => {
     const k = kondisiContoh({ gajiBersihBulanan: 99_000_000 });
     expect(lolosTahapSatu(hitungLaporan(k))).toBe(false);
   });
+
+  it('tidak peduli pada tumpukan kas — kas besar tidak meloloskan siapa pun', () => {
+    const k = kondisiContoh({ saldoKas: 900_000_000 });
+    expect(lolosTahapSatu(hitungLaporan(k))).toBe(false);
+  });
 });
 
 describe('perluTindakanDarurat', () => {
@@ -181,12 +195,13 @@ describe('ambilPinjamanDarurat', () => {
     expect(k.saldoKas).toBe(2_000_000);
   });
 
-  it('mencatat utang baru dengan cicilan dua persen per bulan', () => {
+  it('mencatat utang baru dengan cicilan dua persen dari pokok', () => {
     expect(BUNGA_PINJAMAN_DARURAT).toBe(0.02);
     const k = ambilPinjamanDarurat(kondisiContoh(), 5_000_000);
     const pinjaman = k.liabilitas[k.liabilitas.length - 1];
     expect(pinjaman.sisaUtang).toBe(5_000_000);
     expect(pinjaman.cicilanBulanan).toBe(100_000);
+    expect(pinjaman.bungaBulanan).toBe(0.02);
   });
 
   it('menaikkan total pengeluaran sebesar cicilan baru', () => {
@@ -195,10 +210,9 @@ describe('ambilPinjamanDarurat', () => {
     expect(totalPengeluaran(sesudah) - totalPengeluaran(awal)).toBe(100_000);
   });
 
-  it('menurunkan kekayaan bersih sebesar pokok pinjaman', () => {
+  it('tidak mengubah kekayaan bersih — uangnya masuk, utangnya ikut', () => {
     const awal = kondisiContoh();
-    const sesudah = ambilPinjamanDarurat(awal, 5_000_000);
-    expect(kekayaanBersih(awal) - kekayaanBersih(sesudah)).toBe(5_000_000);
+    expect(kekayaanBersih(ambilPinjamanDarurat(awal, 5_000_000))).toBe(kekayaanBersih(awal));
   });
 
   it('tidak mengubah kondisi lama', () => {
@@ -210,6 +224,78 @@ describe('ambilPinjamanDarurat', () => {
 
   it('melempar galat bila jumlah tidak positif', () => {
     expect(() => ambilPinjamanDarurat(kondisiContoh(), 0)).toThrow('Jumlah pinjaman harus lebih dari nol');
+  });
+});
+
+describe('lunasiPinjaman', () => {
+  /** Kondisi dengan satu pinjaman darurat Rp 5 juta; kas jadi Rp 7 juta. */
+  const berpinjaman = () => ambilPinjamanDarurat(kondisiContoh(), 5_000_000);
+  const idDarurat = 'darurat-3';
+
+  it('mengurangi saldo kas dan sisa utang sebesar pembayaran', () => {
+    const k = lunasiPinjaman(berpinjaman(), idDarurat, 2_000_000);
+    expect(k.saldoKas).toBe(5_000_000);
+    expect(k.liabilitas.find((l) => l.id === idDarurat)?.sisaUtang).toBe(3_000_000);
+  });
+
+  it('menurunkan cicilan mengikuti sisa pokok', () => {
+    const k = lunasiPinjaman(berpinjaman(), idDarurat, 2_000_000);
+    expect(k.liabilitas.find((l) => l.id === idDarurat)?.cicilanBulanan).toBe(60_000);
+  });
+
+  it('melunasi penuh bila jumlah tidak disebut, dan utangnya hilang dari daftar', () => {
+    const k = lunasiPinjaman(berpinjaman(), idDarurat);
+    expect(k.liabilitas.map((l) => l.id)).toEqual(['kpr', 'motor']);
+    expect(k.saldoKas).toBe(2_000_000);
+  });
+
+  it('menghapus cicilannya dari total pengeluaran setelah lunas', () => {
+    const awal = berpinjaman();
+    const sesudah = lunasiPinjaman(awal, idDarurat);
+    expect(totalPengeluaran(awal) - totalPengeluaran(sesudah)).toBe(100_000);
+  });
+
+  it('tidak mengubah kekayaan bersih — kas turun, utang turun sama besar', () => {
+    const awal = berpinjaman();
+    expect(kekayaanBersih(lunasiPinjaman(awal, idDarurat, 2_000_000))).toBe(kekayaanBersih(awal));
+  });
+
+  it('tidak mengenakan denda apa pun', () => {
+    const awal = berpinjaman();
+    const sesudah = lunasiPinjaman(awal, idDarurat);
+    expect(awal.saldoKas - sesudah.saldoKas).toBe(5_000_000);
+  });
+
+  it('membiarkan cicilan tetap pada utang tanpa bunga berjalan', () => {
+    const k = lunasiPinjaman(kondisiContoh({ saldoKas: 10_000_000 }), 'motor', 1_000_000);
+    const motor = k.liabilitas.find((l) => l.id === 'motor');
+    expect(motor?.sisaUtang).toBe(5_000_000);
+    expect(motor?.cicilanBulanan).toBe(500_000);
+  });
+
+  it('tidak mengubah kondisi lama', () => {
+    const awal = berpinjaman();
+    const salinan = structuredClone(awal);
+    lunasiPinjaman(awal, idDarurat, 2_000_000);
+    expect(awal).toEqual(salinan);
+  });
+
+  it('melempar galat bila saldo kas tidak cukup', () => {
+    const k = kondisiContoh({ saldoKas: 100_000 });
+    expect(() => lunasiPinjaman(k, 'motor', 1_000_000)).toThrow('Saldo kas tidak cukup');
+  });
+
+  it('melempar galat bila pembayaran melebihi sisa utang', () => {
+    expect(() => lunasiPinjaman(berpinjaman(), idDarurat, 6_000_000))
+      .toThrow('Pembayaran melebihi sisa utang');
+  });
+
+  it('melempar galat bila jumlah tidak positif', () => {
+    expect(() => lunasiPinjaman(berpinjaman(), idDarurat, 0)).toThrow('Jumlah pelunasan harus lebih dari nol');
+  });
+
+  it('melempar galat bila utang tidak ada', () => {
+    expect(() => lunasiPinjaman(berpinjaman(), 'tidak-ada')).toThrow('Utang tidak ditemukan');
   });
 });
 
@@ -240,14 +326,18 @@ describe('jualAset', () => {
     expect(pendapatanPasif(awal) - pendapatanPasif(sesudah)).toBe(2_800_000);
   });
 
-  // Rumus §5.1 sengaja tidak menghitung saldo kas sebagai bagian kekayaan
-  // bersih. Akibatnya menjual aset menurunkan kekayaan bersih sebesar nilai
-  // aset itu, walau uangnya utuh berpindah ke kas. Perilaku ini dikunci di
-  // sini supaya kalau rumusnya diubah saat balancing, tes ini yang menyala.
-  it('menurunkan kekayaan bersih sebesar nilai aset — saldo kas tidak dihitung', () => {
+  // Invarian wajib §5.1: penjualan darurat memindahkan nilai, tidak
+  // menghancurkannya. Kalau tes ini merah, papan skor Kekayaan berbohong
+  // tepat di momen pemain paling tersulut.
+  it('tidak mengubah kekayaan bersih bila dijual seharga nilainya', () => {
     const awal = dengan2Aset();
-    const sesudah = jualAset(awal, 'ruko');
-    expect(kekayaanBersih(awal) - kekayaanBersih(sesudah)).toBe(340_000_000);
+    expect(kekayaanBersih(jualAset(awal, 'ruko'))).toBe(kekayaanBersih(awal));
+  });
+
+  it('menurunkan kekayaan bersih hanya sebesar selisih harga jual di bawah nilai', () => {
+    const awal = dengan2Aset();
+    const sesudah = jualAset(awal, 'rdi', 9_000_000);
+    expect(kekayaanBersih(awal) - kekayaanBersih(sesudah)).toBe(3_000_000);
   });
 
   it('tidak mengubah kondisi lama', () => {

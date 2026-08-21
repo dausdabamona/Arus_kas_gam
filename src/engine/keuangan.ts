@@ -22,6 +22,12 @@ export interface Liabilitas {
   nama: string;
   sisaUtang: number;
   cicilanBulanan: number;
+  /**
+   * Bunga berjalan per bulan, bila cicilannya memang diturunkan dari sisa
+   * pokok (pinjaman darurat §5.3). Utang bawaan profesi seperti KPR dan
+   * kredit motor tidak punya ini: cicilannya tetap, tidak ikut sisa pokok.
+   */
+  bungaBulanan?: number;
 }
 
 /** Seluruh keadaan keuangan pemain pada satu titik waktu. */
@@ -74,12 +80,16 @@ export function arusKasBulanan(k: KondisiKeuangan): number {
 }
 
 /**
- * Rumus §5.1 apa adanya: hanya aset dikurangi utang. Saldo kas TIDAK ikut
- * dihitung, sehingga menjual aset menurunkan angka ini walau uangnya utuh.
- * Lihat catatan di keuangan.test.ts sebelum mengubahnya.
+ * Rumus §5.1: saldo kas ikut dihitung. Tanpa itu, penjualan darurat terbaca
+ * sebagai kehancuran nilai padahal uangnya utuh berpindah ke kas. Kas
+ * menganggur tetap dihukum di tempat yang benar — pendapatan pasifnya nol.
  */
 export function kekayaanBersih(k: KondisiKeuangan): number {
-  return jumlahkan(k.aset.map((a) => a.nilai)) - jumlahkan(k.liabilitas.map((l) => l.sisaUtang));
+  return (
+    k.saldoKas +
+    jumlahkan(k.aset.map((a) => a.nilai)) -
+    jumlahkan(k.liabilitas.map((l) => l.sisaUtang))
+  );
 }
 
 /** Seluruh baris laporan sekaligus, sekali hitung. */
@@ -111,9 +121,10 @@ export function perluTindakanDarurat(k: KondisiKeuangan): boolean {
 }
 
 /**
- * Mengambil pinjaman darurat. Cicilan bulanannya adalah bunga berjalan
- * 2% dari pokok — utangnya tidak menyusut sendiri, dan cicilannya langsung
- * menambah pengeluaran bulanan.
+ * Mengambil pinjaman darurat (§5.3). Cicilan bulanannya adalah bunga
+ * berjalan 2% dari sisa pokok, dan pokoknya tidak menyusut sendiri —
+ * modelnya utang konsumtif. Satu-satunya jalan keluar adalah
+ * `lunasiPinjaman`, dan itu memang disengaja.
  */
 export function ambilPinjamanDarurat(k: KondisiKeuangan, jumlah: number): KondisiKeuangan {
   if (jumlah <= 0) throw new Error('Jumlah pinjaman harus lebih dari nol');
@@ -122,12 +133,51 @@ export function ambilPinjamanDarurat(k: KondisiKeuangan, jumlah: number): Kondis
     nama: 'Pinjaman darurat',
     sisaUtang: jumlah,
     cicilanBulanan: Math.round(jumlah * BUNGA_PINJAMAN_DARURAT),
+    bungaBulanan: BUNGA_PINJAMAN_DARURAT,
   };
   return {
     ...k,
     saldoKas: k.saldoKas + jumlah,
     liabilitas: [...k.liabilitas, pinjaman],
   };
+}
+
+/**
+ * Pelunasan sukarela dari saldo kas (§5.3) — sebagian atau penuh, kapan saja,
+ * tanpa denda. Tanpa jumlah, utangnya dilunasi penuh. Pokok berkurang; untuk
+ * utang berbunga berjalan, cicilannya ikut turun mengikuti sisa pokok.
+ */
+export function lunasiPinjaman(
+  k: KondisiKeuangan,
+  liabilitasId: string,
+  jumlah?: number,
+): KondisiKeuangan {
+  const utang = k.liabilitas.find((l) => l.id === liabilitasId);
+  if (!utang) throw new Error(`Utang tidak ditemukan: ${liabilitasId}`);
+
+  const bayar = jumlah ?? utang.sisaUtang;
+  if (bayar <= 0) throw new Error('Jumlah pelunasan harus lebih dari nol');
+  if (bayar > utang.sisaUtang) throw new Error('Pembayaran melebihi sisa utang');
+  if (bayar > k.saldoKas) throw new Error('Saldo kas tidak cukup');
+
+  const sisaUtang = utang.sisaUtang - bayar;
+  const liabilitas =
+    sisaUtang === 0
+      ? k.liabilitas.filter((l) => l.id !== liabilitasId)
+      : k.liabilitas.map((l) =>
+          l.id === liabilitasId
+            ? {
+                ...l,
+                sisaUtang,
+                cicilanBulanan:
+                  l.bungaBulanan === undefined
+                    ? l.cicilanBulanan
+                    : Math.round(sisaUtang * l.bungaBulanan),
+              }
+            : l,
+        );
+
+  return { ...k, saldoKas: k.saldoKas - bayar, liabilitas };
 }
 
 /**
