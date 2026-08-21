@@ -44,6 +44,21 @@ export interface HasilSimulasi {
   drainPerGiliran: number;
   /** Nilai akhir seluruh aset pasar yang dipegang — dipakai Invarian 5. */
   nilaiAkhirPasar: number;
+  /** Berapa giliran kas sempat minus. Invarian 6. */
+  jumlahKrisis: number;
+  /** Berapa kali tuas darurat benar-benar dipakai dan mengubah keadaan. */
+  jumlahTuasTerpakai: number;
+  /** Giliran per krisis. Tak hingga bila krisis tidak pernah terjadi. */
+  giliranPerKrisis: number;
+  /**
+   * Giliran saat kas pertama kali minus. Tak hingga bila tidak pernah.
+   *
+   * Ini ukuran Invarian 6 yang sebenarnya bisa dipakai: kas yang menumpuk
+   * membuat guncangan berskala tetap mustahil menembusnya di akhir permainan,
+   * jadi laju krisis seumur permainan selalu melandai. Yang bisa dijaga adalah
+   * KAPAN tekanan pertama tiba — dan di situlah pemain masih telanjang.
+   */
+  giliranKrisisPertama: number;
   state: StatePermainan;
 }
 
@@ -77,6 +92,9 @@ export function jalankanSimulasi(opsi: {
   let totalPemasukan = 0;
   let totalDrain = 0;
   let giliranDijalani = 0;
+  let jumlahKrisis = 0;
+  let jumlahTuasTerpakai = 0;
+  let giliranKrisisPertama = Infinity;
 
   const catat = () => {
     puncakPengeluaran = Math.max(puncakPengeluaran, hitungLaporan(state.keuangan).totalPengeluaran);
@@ -116,6 +134,12 @@ export function jalankanSimulasi(opsi: {
     nilaiAkhirPasar: state.keuangan.aset
       .filter((a) => a.instrumenId !== undefined)
       .reduce((jml, a) => jml + a.nilai, 0),
+    jumlahKrisis,
+    jumlahTuasTerpakai,
+    // Tak hingga, bukan nol: permainan tanpa krisis adalah yang PALING jauh
+    // dari Invarian 6, dan nol akan membuatnya lulus dengan angka terbaik.
+    giliranPerKrisis: jumlahKrisis === 0 ? Infinity : giliranDijalani / jumlahKrisis,
+    giliranKrisisPertama,
   });
 
   let hargaGiliranLalu: Record<string, number> = { ...state.hargaPasar };
@@ -125,6 +149,14 @@ export function jalankanSimulasi(opsi: {
     hargaGiliranLalu = { ...sebelumDadu.hargaPasar };
     kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
     ukur(sebelumDadu, state);
+
+    // Guncang ditutup, tidak dilewati. Pelari yang melempar dadu menembus
+    // kartu guncang mengukur dunia yang berbeda dari yang dimainkan orang,
+    // dan angkanya bohong. Suhu dan jeda sengaja tidak disentuh: yang diukur
+    // di sini keuangan, bukan batin.
+    if (state.guncangTerbuka) {
+      kirim({ tipe: 'TUTUP_GUNCANG', isi: { kartuId: state.guncangTerbuka.kartuId } });
+    }
 
     if (state.kartuTerbuka) {
       kirim({
@@ -148,6 +180,14 @@ export function jalankanSimulasi(opsi: {
       });
     }
 
+    // Satu giliran dihitung satu krisis, sebanyak apa pun tuas yang dipakai
+    // untuk keluar darinya — kalau tidak, satu lubang dalam terbaca seperti
+    // tiga lubang dangkal.
+    if (perluTindakanDarurat(state.keuangan)) {
+      jumlahKrisis++;
+      if (giliranKrisisPertama === Infinity) giliranKrisisPertama = giliran + 1;
+    }
+
     // Tuas darurat, berulang sampai kas tidak minus lagi atau kehabisan pilihan.
     let putaran = 0;
     while (perluTindakanDarurat(state.keuangan) && putaran++ < 10) {
@@ -164,6 +204,7 @@ export function jalankanSimulasi(opsi: {
                   tersedia[0],
               },
       });
+      if (state !== sebelum) jumlahTuasTerpakai++;
       if (state === sebelum || state.status === 'selesai') break;
     }
 

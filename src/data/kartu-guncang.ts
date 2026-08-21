@@ -4,8 +4,12 @@ import type { KartuGuncang } from '../types/guncang';
  * Delapan kartu, empat pemicu. Setiap pemicu punya minimal satu kartu tak
  * bersyarat supaya petak GUNCANG tidak pernah kehabisan kartu.
  *
- * Pengali kas di sini adalah dugaan awal. Tugas 5 yang mengikatnya ke Invarian 6
- * lewat simulator — kalau keduanya berselisih, simulator yang menang.
+ * Pengali kas di sini DISETEL SIMULATOR, bukan selera. Dugaan awal rencana
+ * (0,5-5x) membuat krisis hampir tidak pernah terjadi: kas pemain menumpuk
+ * jauh melampaui skala guncangan, dan pukulan sebesar itu tidak menembusnya.
+ * Angka sekarang adalah pita yang membuat tekanan pertama tiba di sekitar
+ * giliran 10-20 tanpa membangkrutkan profesi bermargin tipis. Rinciannya di
+ * simulasi.test.ts, bagian Invarian 6.
  */
 export const KARTU_GUNCANG: readonly KartuGuncang[] = [
   {
@@ -13,14 +17,14 @@ export const KARTU_GUNCANG: readonly KartuGuncang[] = [
     judul: 'Orang tua masuk rumah sakit',
     teks: 'Biayanya sekarang, bukan nanti. Tidak ada pilihan menolak.',
     pemicu: 'keamanan',
-    efek: { jenis: 'kas', pengali: [2.5, 5] },
+    efek: { jenis: 'kas', pengali: [5, 10] },
   },
   {
     id: 'atap-rumah',
     judul: 'Atap rumah jebol kena angin',
     teks: 'Hujan masuk kamar. Tukang minta uang muka hari ini.',
     pemicu: 'keamanan',
-    efek: { jenis: 'kas', pengali: [1.5, 3] },
+    efek: { jenis: 'kas', pengali: [3.5, 7] },
   },
   {
     id: 'harga-naik',
@@ -34,7 +38,7 @@ export const KARTU_GUNCANG: readonly KartuGuncang[] = [
     judul: 'Transfer ke nomor yang salah',
     teks: 'Uangnya tidak kembali. Yang paling mengganggu bukan jumlahnya.',
     pemicu: 'kendali',
-    efek: { jenis: 'kas', pengali: [0.5, 1.5] },
+    efek: { jenis: 'kas', pengali: [1.5, 4] },
   },
   {
     /**
@@ -76,7 +80,7 @@ export const KARTU_GUNCANG: readonly KartuGuncang[] = [
     judul: 'Saudara datang meminjam uang',
     teks: 'Jumlahnya tidak kecil, dan menolak keluarga rasanya bukan pilihan.',
     pemicu: 'pemisahan',
-    efek: { jenis: 'kas', pengali: [1, 2.5] },
+    efek: { jenis: 'kas', pengali: [2.5, 6] },
   },
 ];
 

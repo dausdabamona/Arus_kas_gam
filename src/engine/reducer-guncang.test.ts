@@ -94,9 +94,15 @@ describe('TUTUP_GUNCANG menerapkan efeknya', () => {
       tipe: 'TUTUP_GUNCANG',
       isi: { kartuId: 'orang-tua-sakit' },
     });
+    // Rentangnya dibaca dari datanya, bukan disalin — pengali disetel simulator
+    // di Tugas 5, dan angka yang disalin di sini akan menyala setiap kali
+    // keseimbangan digeser, tanpa ada yang benar-benar rusak.
+    const efek = cariKartuGuncang('orang-tua-sakit').efek;
+    if (efek.jenis !== 'kas') throw new Error('kartu ini seharusnya berjenis kas');
+    const [bawah, atas] = efek.pengali;
     const potongan = sebelum.keuangan.saldoKas - sesudah.keuangan.saldoKas;
-    expect(potongan).toBeGreaterThanOrEqual(2.5 * sebelum.skalaGuncangan);
-    expect(potongan).toBeLessThanOrEqual(5 * sebelum.skalaGuncangan);
+    expect(potongan).toBeGreaterThanOrEqual(bawah * sebelum.skalaGuncangan);
+    expect(potongan).toBeLessThanOrEqual(atas * sebelum.skalaGuncangan);
     expect(sesudah.guncangTerbuka).toBeNull();
   });
 

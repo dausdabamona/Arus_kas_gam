@@ -60,6 +60,16 @@ export const MAKS_ANAK = 3;
  */
 const URUTAN_TUAS_BAWAAN = ['hemat', 'pinjam', 'jual'] as const;
 
+/**
+ * Batas atas kenaikan pengeluaran tetap seumur permainan, sebagai kelipatan
+ * skala guncangan. Tanpa batas ini kartu inflasi 8% majemuk: dalam 200 giliran
+ * ia menaikkan pengeluaran berkali lipat sampai arus kas bersih negatif dan
+ * permainan mustahil dimenangkan siapa pun — yaitu inflasi berjalan, hal yang
+ * §8.3 justru menyatakan TIDAK dimodelkan. Dengan batas ini pemain selalu
+ * menyisakan sebagian arus kas bersih awalnya.
+ */
+const BATAS_INFLASI_SKALA = 0.5;
+
 /** Jarak panen, dalam giliran. Cukup jauh untuk lupa, cukup dekat untuk sempat. */
 const PANEN_MIN = 4;
 const PANEN_MAKS = 10;
@@ -523,17 +533,20 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
             keuangan: { ...state.keuangan, saldoKas: state.keuangan.saldoKas - biaya },
           });
         }
-        case 'inflasi':
-          // Permanen, dan satu-satunya inflasi di game (§8.3). Tidak pernah dikembalikan.
+        case 'inflasi': {
+          // Permanen, dan satu-satunya inflasi di game (§8.3). Tidak pernah
+          // dikembalikan — tapi berhenti di plafonnya, bukan menumpuk selamanya.
+          const awal = cariProfesi(state.profesiId).kondisiAwal.pengeluaranTetap;
+          const plafon = awal + BATAS_INFLASI_SKALA * state.skalaGuncangan;
+          const naik = state.keuangan.pengeluaranTetap * (1 + kartu.efek.kenaikan);
           return hitungSkor({
             ...ditutup,
             keuangan: {
               ...state.keuangan,
-              pengeluaranTetap: Math.round(
-                state.keuangan.pengeluaranTetap * (1 + kartu.efek.kenaikan),
-              ),
+              pengeluaranTetap: Math.round(Math.min(naik, plafon)),
             },
           });
+        }
         case 'tanpa-efek':
           // Pukulan tanpa kerugian sepeser pun. Kalau suhu tetap naik di sini,
           // yang dipancing memang rasa, bukan saldo.
