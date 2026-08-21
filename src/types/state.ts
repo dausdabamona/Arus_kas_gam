@@ -81,7 +81,18 @@ export interface TanamTertunda {
   padaGiliran: number;
   /** Giliran jatuh tempo. */
   panenPadaGiliran: number;
-  objek: { jenis: 'kartu' | 'instrumen' | 'guncang'; id: string; nilaiSaatItu: number } | null;
+  /**
+   * `padaGiliran` ikut dicatat di sini, bukan hanya di induknya: tanpa itu
+   * `hitungHasilLuar` tidak punya cara mengukur kartu yang DITOLAK — barangnya
+   * tidak pernah jadi aset, jadi tidak ada nilai berjalan yang bisa dibaca,
+   * dan angkanya akan selalu nol tanpa ada yang tahu kenapa.
+   */
+  objek: {
+    jenis: 'kartu' | 'instrumen' | 'guncang';
+    id: string;
+    nilaiSaatItu: number;
+    padaGiliran: number;
+  } | null;
   kebutuhan: KebutuhanId | null;
   /**
    * Sisi dalam panen, distempel saat keputusan pemicunya dihitung — suhu

@@ -196,16 +196,27 @@ function hitungSkor(state: StatePermainan): StatePermainan {
 /** Objek keputusan yang sedang terbuka, untuk dicatat di Tanam. */
 function objekPemicu(state: StatePermainan): StatePermainan['tanamTertunda'][number]['objek'] {
   if (state.guncangTerbuka) {
-    return { jenis: 'guncang', id: state.guncangTerbuka.kartuId, nilaiSaatItu: 0 };
+    return {
+      jenis: 'guncang',
+      id: state.guncangTerbuka.kartuId,
+      nilaiSaatItu: 0,
+      padaGiliran: state.giliran,
+    };
   }
   if (state.kartuTerbuka) {
-    return { jenis: 'kartu', id: state.kartuTerbuka.id, nilaiSaatItu: state.kartuTerbuka.harga };
+    return {
+      jenis: 'kartu',
+      id: state.kartuTerbuka.id,
+      nilaiSaatItu: state.kartuTerbuka.harga,
+      padaGiliran: state.giliran,
+    };
   }
   if (state.pasarTerbuka) {
     return {
       jenis: 'instrumen',
       id: state.pasarTerbuka,
       nilaiSaatItu: state.hargaPasar[state.pasarTerbuka],
+      padaGiliran: state.giliran,
     };
   }
   return null;
