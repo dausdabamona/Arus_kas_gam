@@ -62,7 +62,16 @@ export function LayarPapan() {
         <Tombol
           onClick={() => void kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } })}
           disabled={
-            state.kartuTerbuka !== null || state.pasarTerbuka !== null || darurat || memproses
+            // Guncang dan panen ikut mengunci: guncangan yang bisa dilewati
+            // dengan melempar dadu adalah guncangan gratis, dan seluruh angka
+            // Invarian 6 disetel di atas dunia yang tidak membolehkannya.
+            // Layarnya sendiri baru dibangun di Tugas 6-7; kuncinya duluan.
+            state.kartuTerbuka !== null ||
+            state.pasarTerbuka !== null ||
+            state.guncangTerbuka !== null ||
+            state.panenTerbuka !== null ||
+            darurat ||
+            memproses
           }
           lebarPenuh
         >
