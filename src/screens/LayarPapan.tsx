@@ -5,6 +5,7 @@ import { Papan } from '../components/papan/Papan';
 import { KartuPeluangTampil } from '../components/papan/KartuPeluangTampil';
 import { GarisArus } from '../components/keuangan/GarisArus';
 import { LaporanKeuangan } from '../components/keuangan/LaporanKeuangan';
+import { BarisBot } from '../components/papan/BarisBot';
 import { KartuPasar } from '../components/pasar/KartuPasar';
 import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
@@ -41,6 +42,10 @@ export function LayarPapan() {
 
       <div className="mt-5">
         <Papan posisi={state.posisi} />
+      </div>
+
+      <div className="mt-5">
+        <BarisBot bot={state.bot} />
       </div>
 
       {state.pasarTerbuka && <KartuPasar />}
