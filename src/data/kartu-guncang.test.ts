@@ -59,6 +59,23 @@ describe('data kartu guncang', () => {
     expect(KARTU_GUNCANG.some((k) => k.efek.jenis === 'tanpa-efek')).toBe(true);
   });
 
+  /**
+   * Kelayakan kartu `ada-bot-lolos` bergantung pada nasib bot, jadi kartu yang
+   * tampil bisa berbeda antara dunia berbot dan dunia tanpa bot. Selama seluruh
+   * pemicunya tanpa efek uang, perbedaan itu tidak pernah bisa menggeser kas
+   * pemain — dan invarian isolasi Fase 4 tetap utuh dalam hal yang penting.
+   */
+  it('menjaga seluruh pemicu kartu bergantung-bot bebas dari efek uang', () => {
+    const bergantungBot = KARTU_GUNCANG.filter((k) => k.syarat === 'ada-bot-lolos');
+    expect(bergantungBot.length).toBeGreaterThan(0);
+    for (const kartu of bergantungBot) {
+      const sepemicu = KARTU_GUNCANG.filter((k) => k.pemicu === kartu.pemicu);
+      for (const lain of sepemicu) {
+        expect(lain.efek.jenis, `${lain.id} sepemicu dengan ${kartu.id}`).toBe('tanpa-efek');
+      }
+    }
+  });
+
   it('memakai kenaikan inflasi persis 0,08 sesuai §8.3', () => {
     const inflasi = KARTU_GUNCANG.filter((k) => k.efek.jenis === 'inflasi');
     expect(inflasi.length).toBeGreaterThan(0);

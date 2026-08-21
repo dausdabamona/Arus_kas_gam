@@ -80,10 +80,11 @@ describe('PUTUSKAN', () => {
   });
 });
 
-describe('petak yang belum berefek di fase ini', () => {
-  // GUNCANG baru ditangani Fase 5. PASAR sudah aktif sejak Fase 3 dan
-  // diuji terpisah di pasar-petak.test.ts.
-  it('GUNCANG tidak mengubah keuangan', () => {
+describe('petak GUNCANG membuka kartu tanpa langsung menagih', () => {
+  // Sejak Fase 5 petak ini memang berefek — tapi efeknya menunggu
+  // TUTUP_GUNCANG, supaya pemain sempat merasakannya dulu. Rinciannya
+  // diuji di reducer-guncang.test.ts.
+  it('tidak mengubah keuangan pada saat mendarat', () => {
     const sebelum = statePada(15); // dadu 1 → petak 16 (GUNCANG)
     let sesudah = sebelum;
     for (let t = 1; t < 200; t++) {
@@ -95,6 +96,7 @@ describe('petak yang belum berefek di fase ini', () => {
       sebelum.keuangan.saldoKas + arusKasBulanan(sebelum.keuangan) * 0,
     );
     expect(sesudah.pasarTerbuka).toBeNull();
+    expect(sesudah.guncangTerbuka).not.toBeNull();
   });
 });
 
