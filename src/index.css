@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-ivory text-tinta font-sans antialiased;
+    overscroll-behavior-y: none;
+  }
+  button {
+    @apply min-h-sentuh min-w-sentuh;
+  }
+}
