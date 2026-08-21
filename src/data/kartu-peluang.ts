@@ -1,0 +1,123 @@
+import type { KartuPeluang } from '../types/kartu';
+
+export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
+  {
+    id: 'reksa-indeks',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Reksa dana indeks',
+    keterangan: 'Setoran sekali Rp 5.000.000. Tidak ada arus kas bulanan. Tumbuh pelan.',
+    harga: 5_000_000,
+    uangMuka: 5_000_000,
+    arusKasBulanan: 0,
+    sisaUtang: 0,
+    cicilanBulanan: 0,
+  },
+  {
+    id: 'kos-satu-pintu',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Kamar kos satu pintu',
+    keterangan: 'Kamar kos dekat kampus. Sewa Rp 750.000 per bulan, sudah dipotong perawatan.',
+    harga: 45_000_000,
+    uangMuka: 9_000_000,
+    arusKasBulanan: 750_000,
+    sisaUtang: 36_000_000,
+    cicilanBulanan: 420_000,
+  },
+  {
+    id: 'gerobak-minuman',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Gerobak minuman',
+    keterangan: 'Titip kelola ke saudara. Bagi hasil Rp 900.000 per bulan bila ramai.',
+    harga: 12_000_000,
+    uangMuka: 12_000_000,
+    arusKasBulanan: 900_000,
+    sisaUtang: 0,
+    cicilanBulanan: 0,
+  },
+  {
+    id: 'emas-batangan',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Emas batangan 50 gram',
+    keterangan: 'Disimpan sendiri. Tidak menghasilkan apa-apa setiap bulan.',
+    harga: 7_500_000,
+    uangMuka: 7_500_000,
+    arusKasBulanan: 0,
+    sisaUtang: 0,
+    cicilanBulanan: 0,
+  },
+  {
+    id: 'tanah-kavling',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Tanah kavling pinggir kota',
+    keterangan: 'Belum ada yang menyewa. Pajak bumi tetap jalan.',
+    harga: 25_000_000,
+    uangMuka: 25_000_000,
+    arusKasBulanan: -50_000,
+    sisaUtang: 0,
+    cicilanBulanan: 0,
+  },
+  {
+    id: 'motor-sewa',
+    tumpukan: 'PELUANG_KECIL',
+    judul: 'Motor untuk disewakan',
+    keterangan: 'Disewakan harian. Rp 600.000 per bulan, belum termasuk servis besar.',
+    harga: 18_000_000,
+    uangMuka: 6_000_000,
+    arusKasBulanan: 600_000,
+    sisaUtang: 12_000_000,
+    cicilanBulanan: 350_000,
+  },
+];
+
+export const KARTU_PELUANG_BESAR: readonly KartuPeluang[] = [
+  {
+    id: 'ruko-pasar',
+    tumpukan: 'PELUANG_BESAR',
+    judul: 'Ruko dekat pasar',
+    keterangan: 'Sewa bersih Rp 2.800.000 per bulan. Atap perlu diperbaiki tahun ketiga.',
+    harga: 340_000_000,
+    uangMuka: 70_000_000,
+    arusKasBulanan: 2_800_000,
+    sisaUtang: 270_000_000,
+    cicilanBulanan: 2_100_000,
+  },
+  {
+    id: 'kontrakan-enam-pintu',
+    tumpukan: 'PELUANG_BESAR',
+    judul: 'Kontrakan enam pintu',
+    keterangan: 'Sewa bersih Rp 4.200.000 per bulan. Dua pintu sering kosong saat musim sepi.',
+    harga: 480_000_000,
+    uangMuka: 120_000_000,
+    arusKasBulanan: 4_200_000,
+    sisaUtang: 360_000_000,
+    cicilanBulanan: 2_900_000,
+  },
+  {
+    id: 'kapal-pancing',
+    tumpukan: 'PELUANG_BESAR',
+    judul: 'Kapal pancing untuk disewakan',
+    keterangan: 'Ramai saat musim tenang. Rp 5.500.000 per bulan, biaya perawatan tinggi.',
+    harga: 260_000_000,
+    uangMuka: 80_000_000,
+    arusKasBulanan: 5_500_000,
+    sisaUtang: 180_000_000,
+    cicilanBulanan: 3_400_000,
+  },
+  {
+    id: 'gudang-kecil',
+    tumpukan: 'PELUANG_BESAR',
+    judul: 'Gudang kecil pinggir jalan',
+    keterangan: 'Disewa satu distributor. Rp 3.500.000 per bulan, kontrak tiga tahun.',
+    harga: 300_000_000,
+    uangMuka: 90_000_000,
+    arusKasBulanan: 3_500_000,
+    sisaUtang: 210_000_000,
+    cicilanBulanan: 2_400_000,
+  },
+];
+
+const SEMUA = [...KARTU_PELUANG_KECIL, ...KARTU_PELUANG_BESAR];
+
+export function cariKartu(id: string): KartuPeluang | undefined {
+  return SEMUA.find((k) => k.id === id);
+}
