@@ -67,7 +67,10 @@ export function jalankanSimulasi(opsi: {
   kebijakan: Kebijakan;
   maksGiliran: number;
 }): HasilSimulasi {
-  let state = stateAwal(opsi.seed, opsi.profesiId);
+  // Bot dimatikan di jalur simulasi: simulator mengukur ekonomi pemain, dan
+  // menjalankan tiga dunia tambahan tiap giliran hanya memperlambat tanpa
+  // menambah apa pun yang diukur. Invarian isolasi menjamin hasilnya sama.
+  let state: StatePermainan = { ...stateAwal(opsi.seed, opsi.profesiId), bot: [] };
   let t = 1;
   let puncakPengeluaran = 0;
   let puncakUtang = 0;

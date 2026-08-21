@@ -4,6 +4,8 @@ import { petakDi, posisiSetelah, hitungGajianDilewati } from './papan';
 import {
   arusKasBulanan,
   jualAset,
+  lolosTahapSatu,
+  hitungLaporan,
   lunasiPinjaman,
   nilaiUlangAsetPasar,
   perluTindakanDarurat,
@@ -14,6 +16,7 @@ import {
   type KondisiKeuangan,
 } from './keuangan';
 import { gerakkanHarga, hargaAwalSemua, hargaPadaKetukan } from './pasar';
+import { botAwal, majukanBot } from './bot';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
 import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { cariProfesi } from '../data/profesi';
@@ -48,8 +51,13 @@ export const MAKS_ANAK = 3;
  */
 const URUTAN_TUAS_BAWAAN = ['hemat', 'pinjam', 'jual'] as const;
 
-/** State kosong sebelum kejadian apa pun dijalankan. */
-export function stateAwal(seed: string, profesiId: string): StatePermainan {
+/**
+ * State kosong sebelum kejadian apa pun dijalankan.
+ *
+ * `denganBot` dimatikan saat `botAwal` memanggil balik ke sini — tanpa itu
+ * tiap bot akan melahirkan tiga bot lagi, tanpa henti.
+ */
+export function stateAwal(seed: string, profesiId: string, denganBot = true): StatePermainan {
   const kondisiAwal = strukturUlang(cariProfesi(profesiId).kondisiAwal);
   return {
     seed,
@@ -63,6 +71,7 @@ export function stateAwal(seed: string, profesiId: string): StatePermainan {
     skalaGuncangan: Math.max(1, arusKasBulanan(kondisiAwal)),
     kartuTerbuka: null,
     pasarTerbuka: null,
+    bot: denganBot ? botAwal(seed, (s, p) => stateAwal(s, p, false)) : [],
   };
 }
 
@@ -189,7 +198,28 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         ),
       };
 
-      return efekPetak(bergerak, prng);
+      const setelahEfek = efekPetak(bergerak, prng);
+
+      // Satu kejadian memajukan seluruh dunia. Bot berjalan di dunianya
+      // sendiri dengan seed turunan, jadi deret acaknya tidak pernah
+      // bersinggungan dengan deret pemain.
+      if (setelahEfek.bot.length === 0) return setelahEfek;
+
+      return {
+        ...setelahEfek,
+        bot: setelahEfek.bot.map((b) => {
+          const maju = majukanBot(b, kejadian.t, reduce);
+          return {
+            ...maju,
+            lolosPadaGiliran:
+              maju.lolosPadaGiliran ??
+              (lolosTahapSatu(hitungLaporan(maju.state.keuangan)) ? maju.state.giliran : null),
+            bangkrutPadaGiliran:
+              maju.bangkrutPadaGiliran ??
+              (maju.state.status === 'selesai' ? maju.state.giliran : null),
+          };
+        }),
+      };
     }
 
     case 'PUTUSKAN': {

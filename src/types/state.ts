@@ -27,6 +27,20 @@ export interface StatePermainan {
   hargaPasar: Record<string, number>;
   /** Instrumen yang sedang ditawarkan, menunggu keputusan. Null bila tidak ada. */
   pasarTerbuka: string | null;
+  /** Dunia tiga bot. Kosong di dalam dunia bot itu sendiri — tidak bersarang. */
+  bot: BotBerjalan[];
+}
+
+/** Satu bot beserta dunianya sendiri. */
+export interface BotBerjalan {
+  id: string;
+  /** Dunia bot sendiri. Bidang `bot` di dalamnya selalu kosong. */
+  state: StatePermainan;
+  hargaLalu: Record<string, number>;
+  lolosPadaGiliran: number | null;
+  bangkrutPadaGiliran: number | null;
+  /** Kalimat terakhir yang diucapkan bot. Null bila sedang diam. */
+  komentar: string | null;
 }
 
 export const JUMLAH_PETAK = 24;
