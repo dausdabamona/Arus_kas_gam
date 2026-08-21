@@ -93,6 +93,19 @@ describe('petak yang belum berefek di fase ini', () => {
   });
 });
 
+describe('BIAYA_TAK_TERDUGA proporsional', () => {
+  it('tidak pernah melampaui 1,5x gaji bulanan', () => {
+    const sebelum = statePada(2); // dadu 1 → petak 3
+    for (let t = 1; t < 300; t++) {
+      const sesudah = reduce(sebelum, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
+      if (sesudah.posisi !== 3) continue;
+      const biaya = sebelum.keuangan.saldoKas - sesudah.keuangan.saldoKas;
+      expect(biaya).toBeLessThanOrEqual(sebelum.keuangan.gajiBersihBulanan * 1.5);
+      expect(biaya).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('petak TAMBAH_ANAK', () => {
   it('menambah satu anak dan menaikkan pengeluaran', () => {
     const sebelum = statePada(16); // dadu 1 → petak 17

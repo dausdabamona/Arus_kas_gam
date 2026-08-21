@@ -44,7 +44,10 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
       return { ...state, kartuTerbuka: ambilSatu(prng, KARTU_PELUANG_BESAR) };
 
     case 'BIAYA_TAK_TERDUGA': {
-      const biaya = bilanganAcak(prng, 1, 10) * 500_000;
+      // Proporsional terhadap gaji, bukan nominal tetap — supaya beratnya
+      // terasa sama di semua profesi tanpa penyetelan satu per satu.
+      const pengali = bilanganAcak(prng, 2, 15) / 10; // 0,2x sampai 1,5x
+      const biaya = Math.round(state.keuangan.gajiBersihBulanan * pengali);
       return {
         ...state,
         keuangan: { ...state.keuangan, saldoKas: state.keuangan.saldoKas - biaya },
