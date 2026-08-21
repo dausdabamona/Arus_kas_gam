@@ -17,6 +17,7 @@ import {
 } from './keuangan';
 import { gerakkanHarga, hargaAwalSemua, hargaPadaKetukan } from './pasar';
 import { botAwal, majukanBot } from './bot';
+import { komentarUntuk, momenDari } from './komentar';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
 import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { cariProfesi } from '../data/profesi';
@@ -209,7 +210,7 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         ...setelahEfek,
         bot: setelahEfek.bot.map((b) => {
           const maju = majukanBot(b, kejadian.t, reduce);
-          return {
+          const sesudah = {
             ...maju,
             lolosPadaGiliran:
               maju.lolosPadaGiliran ??
@@ -218,6 +219,12 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
               maju.bangkrutPadaGiliran ??
               (maju.state.status === 'selesai' ? maju.state.giliran : null),
           };
+          // Bot bergerak diam-diam; komentar adalah satu-satunya suaranya.
+          // Kalimat lama dipertahankan saat bot sedang diam, supaya layar
+          // tidak berkedip kosong tiap giliran.
+          const momen = momenDari(b, sesudah);
+          const kalimat = komentarUntuk(state.seed, kejadian.t, b.id, momen);
+          return { ...sesudah, komentar: kalimat ?? sesudah.komentar };
         }),
       };
     }
