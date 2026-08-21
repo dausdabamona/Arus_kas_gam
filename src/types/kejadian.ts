@@ -1,3 +1,7 @@
+import type { TumpukanKartu } from './kartu';
+
+export type { TumpukanKartu };
+
 export type KebutuhanId = 'keamanan' | 'kendali' | 'pengakuan' | 'pemisahan';
 export type JenisTemuan = 'program' | 'emosi' | 'informasi' | 'kebiasaan';
 
@@ -10,6 +14,9 @@ export interface IsiJedaBatin {
 export type Kejadian =
   | { t: number; tipe: 'MULAI'; isi: { seed: string; profesiId: string } }
   | { t: number; tipe: 'LEMPAR_DADU'; isi: { pemainId: string } }
+  | { t: number; tipe: 'PUTUSKAN'; isi: { kartuId: string; pilihan: 'ambil' | 'tolak' } }
+  | { t: number; tipe: 'LUNASI'; isi: { liabilitasId: string; jumlah?: number } }
+  | { t: number; tipe: 'JUAL_ASET'; isi: { asetId: string } }
   | { t: number; tipe: 'SUHU_BATIN'; isi: { nilai: number; fase: 'sebelum' | 'sesudah' } }
   | { t: number; tipe: 'JEDA_BATIN'; isi: IsiJedaBatin }
   | { t: number; tipe: 'LEWATI_JEDA'; isi: { pemicuId: string } }
