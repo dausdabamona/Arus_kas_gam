@@ -4,6 +4,8 @@ import {
   hitungLaporan, MAKS_BERHEMAT, POTONGAN_BERHEMAT, PLAFON_PINJAMAN_GAJI,
 } from './keuangan';
 import { cariProfesi } from '../data/profesi';
+import { reduce, stateAwal } from './reducer';
+import type { StatePermainan } from '../types/state';
 
 const guru = () => cariProfesi('guru-honorer').kondisiAwal;
 
@@ -101,5 +103,69 @@ describe('tuasTersedia', () => {
       }],
     };
     expect(tuasTersedia(k)).toEqual([]);
+  });
+});
+
+describe('tuas bawaan saat pemain tidak memilih', () => {
+  /** Kondisi kas minus dengan ketiga tuas masih tersedia. */
+  const kasMinus = (): StatePermainan => {
+    const awal = stateAwal('uji-tuas', 'asn-3b');
+    return {
+      ...awal,
+      keuangan: {
+        ...awal.keuangan,
+        saldoKas: -1_000_000,
+        aset: [{ id: 'kos-0', nama: 'Kamar kos', nilai: 45_000_000, arusKasBulanan: 750_000 }],
+      },
+    };
+  };
+
+  it('memilih berhemat, bukan menjual aset — tidak ada jalur yang berujung panik', () => {
+    const sebelum = kasMinus();
+    expect(tuasTersedia(sebelum.keuangan)).toEqual(['jual', 'pinjam', 'hemat']);
+
+    const sesudah = reduce(sebelum, { t: 1, tipe: 'TINDAKAN_DARURAT', isi: {} });
+
+    expect(sesudah.keuangan.kaliBerhemat).toBe(1);
+    expect(sesudah.keuangan.aset).toHaveLength(1); // asetnya utuh
+    expect(sesudah.keuangan.liabilitas).toHaveLength(sebelum.keuangan.liabilitas.length);
+  });
+
+  it('jatuh ke pinjam saat penghematan sudah mentok', () => {
+    let k = kasMinus().keuangan;
+    for (let i = 0; i < MAKS_BERHEMAT; i++) k = berhemat(k);
+    const sebelum = { ...kasMinus(), keuangan: { ...k, saldoKas: -1_000_000 } };
+
+    const sesudah = reduce(sebelum, { t: 1, tipe: 'TINDAKAN_DARURAT', isi: {} });
+
+    expect(sesudah.keuangan.liabilitas.length).toBe(sebelum.keuangan.liabilitas.length + 1);
+    expect(sesudah.keuangan.aset).toHaveLength(1); // masih belum menjual apa pun
+  });
+
+  it('menjual hanya sebagai pilihan terakhir', () => {
+    let k = kasMinus().keuangan;
+    for (let i = 0; i < MAKS_BERHEMAT; i++) k = berhemat(k);
+    const sebelum = {
+      ...kasMinus(),
+      keuangan: {
+        ...k,
+        saldoKas: -1_000_000,
+        liabilitas: [{
+          id: 'darurat-1', nama: 'Pinjaman darurat',
+          sisaUtang: k.gajiBersihBulanan * PLAFON_PINJAMAN_GAJI,
+          cicilanBulanan: 1, bungaBulanan: 0.02,
+          pokokAwal: k.gajiBersihBulanan * PLAFON_PINJAMAN_GAJI,
+        }],
+      },
+    };
+    expect(tuasTersedia(sebelum.keuangan)).toEqual(['jual']);
+
+    const sesudah = reduce(sebelum, { t: 1, tipe: 'TINDAKAN_DARURAT', isi: {} });
+
+    expect(sesudah.keuangan.aset).toHaveLength(0);
+  });
+
+  it('tidak mengubah urutan yang dikembalikan tuasTersedia', () => {
+    expect(tuasTersedia(kasMinus().keuangan)).toEqual(['jual', 'pinjam', 'hemat']);
   });
 });

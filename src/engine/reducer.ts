@@ -40,6 +40,13 @@ const AMAL_BATAS_PENGHASILAN = 0.3;
  */
 export const MAKS_ANAK = 2;
 
+/**
+ * Tuas yang dipilih mesin bila pemain tidak menyebutkan satu pun: tekan
+ * pengeluaran dulu, pinjam kalau perlu, jual paling akhir. Berbeda dari
+ * urutan tampil `tuasTersedia()`, yang tidak boleh ikut berubah.
+ */
+const URUTAN_TUAS_BAWAAN = ['hemat', 'pinjam', 'jual'] as const;
+
 /** State kosong sebelum kejadian apa pun dijalankan. */
 export function stateAwal(seed: string, profesiId: string): StatePermainan {
   return {
@@ -201,8 +208,14 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         return { ...state, status: 'selesai' }; // bangkrut, §5.3
       }
 
-      const tuas = kejadian.isi.tuas ?? tersedia[0];
-      if (!tersedia.includes(tuas)) return state;
+      // Urutan bawaan sengaja berbeda dari urutan tampil di tuasTersedia:
+      // urutan bawaan di kode diam-diam berfungsi sebagai rekomendasi, dan
+      // tidak ada jalur yang pantas berujung panik tanpa pemain memilihnya.
+      // Menjual aset produktif adalah refleks yang game ini ingin ditunjukkan
+      // dari luar, bukan yang dilakukan mesin atas nama pemain.
+      const bawaan = URUTAN_TUAS_BAWAAN.find((t) => tersedia.includes(t));
+      const tuas = kejadian.isi.tuas ?? bawaan;
+      if (!tuas || !tersedia.includes(tuas)) return state;
 
       switch (tuas) {
         case 'hemat':
