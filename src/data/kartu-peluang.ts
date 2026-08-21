@@ -11,6 +11,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: 0,
     sisaUtang: 0,
     cicilanBulanan: 0,
+    kelas: 'apresiasi',
+    driftBulanan: 0.009,
+    volatilitasBulanan: 0.015,
   },
   {
     id: 'kos-satu-pintu',
@@ -22,6 +25,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: 750_000,
     sisaUtang: 36_000_000,
     cicilanBulanan: 420_000,
+    kelas: 'stagnan',
+    driftBulanan: 0.001,
+    volatilitasBulanan: 0.004,
   },
   {
     id: 'gerobak-minuman',
@@ -33,6 +39,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: 900_000,
     sisaUtang: 0,
     cicilanBulanan: 0,
+    kelas: 'depresiasi',
+    driftBulanan: -0.06,
+    volatilitasBulanan: 0.02,
   },
   {
     id: 'emas-batangan',
@@ -44,6 +53,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: 0,
     sisaUtang: 0,
     cicilanBulanan: 0,
+    kelas: 'apresiasi',
+    driftBulanan: 0.008,
+    volatilitasBulanan: 0.02,
   },
   {
     id: 'tanah-kavling',
@@ -55,6 +67,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: -50_000,
     sisaUtang: 0,
     cicilanBulanan: 0,
+    kelas: 'apresiasi',
+    driftBulanan: 0.012,
+    volatilitasBulanan: 0.03,
   },
   {
     id: 'motor-sewa',
@@ -66,6 +81,9 @@ export const KARTU_PELUANG_KECIL: readonly KartuPeluang[] = [
     arusKasBulanan: 600_000,
     sisaUtang: 12_000_000,
     cicilanBulanan: 350_000,
+    kelas: 'depresiasi',
+    driftBulanan: -0.022,
+    volatilitasBulanan: 0.015,
   },
 ];
 
@@ -80,6 +98,9 @@ export const KARTU_PELUANG_BESAR: readonly KartuPeluang[] = [
     arusKasBulanan: 2_800_000,
     sisaUtang: 270_000_000,
     cicilanBulanan: 2_100_000,
+    kelas: 'apresiasi',
+    driftBulanan: 0.006,
+    volatilitasBulanan: 0.01,
   },
   {
     id: 'kontrakan-enam-pintu',
@@ -91,6 +112,9 @@ export const KARTU_PELUANG_BESAR: readonly KartuPeluang[] = [
     arusKasBulanan: 4_200_000,
     sisaUtang: 360_000_000,
     cicilanBulanan: 2_900_000,
+    kelas: 'stagnan',
+    driftBulanan: 0.001,
+    volatilitasBulanan: 0.004,
   },
   {
     id: 'kapal-pancing',
@@ -102,6 +126,9 @@ export const KARTU_PELUANG_BESAR: readonly KartuPeluang[] = [
     arusKasBulanan: 5_500_000,
     sisaUtang: 180_000_000,
     cicilanBulanan: 3_400_000,
+    kelas: 'depresiasi',
+    driftBulanan: -0.01,
+    volatilitasBulanan: 0.02,
   },
   {
     id: 'gudang-kecil',
@@ -113,6 +140,9 @@ export const KARTU_PELUANG_BESAR: readonly KartuPeluang[] = [
     arusKasBulanan: 3_500_000,
     sisaUtang: 210_000_000,
     cicilanBulanan: 2_400_000,
+    kelas: 'stagnan',
+    driftBulanan: 0.001,
+    volatilitasBulanan: 0.004,
   },
 ];
 

@@ -8,6 +8,7 @@ import {
   hitungLaporan,
   lunasiPinjaman,
   nilaiUlangAsetPasar,
+  nilaiUlangAsetKartu,
   perluTindakanDarurat,
   tuasTersedia,
   berhemat,
@@ -15,7 +16,7 @@ import {
   sisaPlafonPinjaman,
   type KondisiKeuangan,
 } from './keuangan';
-import { gerakkanHarga, hargaAwalSemua, hargaPadaKetukan } from './pasar';
+import { gerakkanHarga, hargaAwalSemua, hargaPadaKetukan, nilaiKartuBerikutnya } from './pasar';
 import { botAwal, majukanBot } from './bot';
 import { komentarUntuk, momenDari } from './komentar';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
@@ -31,8 +32,8 @@ import type { Prng } from './prng';
  * bersih awal profesi, dikunci sekali di awal permainan (§5.4 Invarian 3).
  * Angkanya terikat Invarian 3 di `simulasi.test.ts`.
  */
-const BIAYA_PENGALI_MIN = 2; // 0,2x penghasilan bebas
-const BIAYA_PENGALI_MAKS = 4; // 0,4x penghasilan bebas
+const BIAYA_PENGALI_MIN = 2; // 0,2x skala guncangan
+const BIAYA_PENGALI_MAKS = 4; // 0,4x skala guncangan
 
 /** Batas derma, sebagai kelipatan skala guncangan. */
 const AMAL_BATAS_PENGHASILAN = 0.3;
@@ -97,9 +98,8 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
       return { ...state, kartuTerbuka: ambilSatu(prng, KARTU_PELUANG_BESAR) };
 
     case 'BIAYA_TAK_TERDUGA': {
-      // Proporsional terhadap penghasilan bebas, bukan nominal tetap —
-      // supaya beratnya terasa sama di semua profesi tanpa penyetelan satu
-      // per satu, dan tanpa menghukum profesi bermargin tipis.
+      // Diskalakan ke skala guncangan yang dikunci di awal permainan, bukan
+      // ke gaji dan bukan ke pemasukan berjalan (§5.4 Invarian 3).
       const pengali = bilanganAcak(prng, BIAYA_PENGALI_MIN, BIAYA_PENGALI_MAKS) / 10;
       const biaya = Math.round(state.skalaGuncangan * pengali);
       return {
@@ -109,7 +109,7 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
     }
 
     case 'AMAL': {
-      // Sepersepuluh kas, tapi dibatasi terhadap penghasilan bebas. Tanpa
+      // Sepersepuluh kas, tapi dibatasi terhadap skala guncangan. Tanpa
       // batas ini kas yang menumpuk membuat derma tumbuh tanpa henti sampai
       // menyerap seluruh pemasukan — Invarian 3 lalu mustahil dipenuhi.
       const batas = state.skalaGuncangan * AMAL_BATAS_PENGHASILAN;
@@ -152,6 +152,8 @@ function ambilKartu(keuangan: KondisiKeuangan, kartu: KartuPeluang): KondisiKeua
         nama: kartu.judul,
         nilai: kartu.harga,
         arusKasBulanan: kartu.arusKasBulanan,
+        driftBulanan: kartu.driftBulanan,
+        volatilitasBulanan: kartu.volatilitasBulanan,
       },
     ],
   };
@@ -192,10 +194,21 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         posisi: posisiSetelah(state.posisi, mata),
         riwayatDadu: [...state.riwayatDadu, mata],
         hargaPasar: hargaBaru,
-        keuangan: nilaiUlangAsetPasar(
-          { ...state.keuangan, saldoKas: state.keuangan.saldoKas + arus * gajian },
-          hargaBaru,
-          (id) => cariInstrumen(id)?.imbalBulanan ?? 0,
+        keuangan: nilaiUlangAsetKartu(
+          nilaiUlangAsetPasar(
+            { ...state.keuangan, saldoKas: state.keuangan.saldoKas + arus * gajian },
+            hargaBaru,
+            (id) => cariInstrumen(id)?.imbalBulanan ?? 0,
+          ),
+          (a) =>
+            nilaiKartuBerikutnya(
+              state.seed,
+              kejadian.t,
+              a.id,
+              a.nilai,
+              a.driftBulanan ?? 0,
+              a.volatilitasBulanan ?? 0,
+            ),
         ),
       };
 

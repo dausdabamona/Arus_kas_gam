@@ -60,3 +60,25 @@ export function hargaPadaKetukan(
 
   return Math.max(1, Math.round(hargaDasar * (1 + goyang)));
 }
+
+/**
+ * Satu langkah nilai untuk aset kartu (§8.3). Deterministik dari seed + id
+ * aset + nomor kejadian, jadi pemutaran ulang menghasilkan nilai yang sama
+ * persis tanpa menyimpan apa pun.
+ *
+ * Arus kas aset sengaja TIDAK ikut berubah: sewa kos tetap sewa kos meski
+ * nilainya bergerak. Itulah yang membuat arus kas dan apresiasi jadi dua
+ * sumbu yang benar-benar terpisah.
+ */
+export function nilaiKartuBerikutnya(
+  seed: string,
+  t: number,
+  asetId: string,
+  nilai: number,
+  driftBulanan: number,
+  volatilitasBulanan: number,
+): number {
+  const prng = prngUntuk(`${seed}#aset#${asetId}`, t);
+  const guncang = volatilitasBulanan * (2 * prng() - 1);
+  return Math.max(1, Math.round(nilai * (1 + driftBulanan + guncang)));
+}

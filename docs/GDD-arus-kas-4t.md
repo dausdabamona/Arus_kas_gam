@@ -302,17 +302,58 @@ lewat simulasi mesin, bukan lewat pembacaan angka, dan wajib dijaga oleh
 **Invarian 3 — guncangan harus sebanding dengan pemasukan per giliran.**
 
 > Pemasukan Gajian yang diharapkan per giliran ≥ **1,5 ×** total drain acak
-> yang diharapkan per giliran (Biaya Tak Terduga + Amal + biaya anak).
+> yang diharapkan per giliran (Biaya Tak Terduga + Amal).
 
-Patokan yang benar adalah pemasukan **per giliran**, bukan gaji bulanan —
-dua satuan yang berbeda, dan menyamakannya pernah membuat setiap profesi
-net-negatif sebelum pemain memutuskan apa pun. Kunci **rasionya**, bukan
-nominalnya, dan biarkan `simulasi.test.ts` yang mengukur: dengan begitu
-petak atau kartu baru di fase mana pun akan menyalakan tes yang tepat.
+**Biaya anak bukan drain.** Mendarat di TAMBAH_ANAK tidak mengurangi kas sama
+sekali; yang naik adalah pengeluaran bulanan, yang menurunkan arus kas bersih,
+yang menurunkan pembayaran Gajian. Efeknya sudah terhitung penuh di sisi
+pemasukan — memasukkannya lagi ke sisi drain menghitungnya dua kali.
+
+**Skala guncangan dikunci sekali di awal permainan**, diturunkan dari arus kas
+bersih awal profesi (`skalaGuncangan`), bukan dari gaji dan bukan dari
+pemasukan yang berjalan:
+
+- Diskalakan ke **gaji** → menghukum profesi bermargin tipis dua kali.
+- Diskalakan ke pemasukan yang **berjalan** → guncangan tumbuh mengikuti
+  penghasilan, pemain tidak pernah bisa melampaui gejolak, dan satu-satunya
+  hadiah membangun aset lenyap.
+- Dikunci di **awal** → adil antar profesi, dan pemain yang membangun aset
+  benar-benar keluar dari zona rapuh. Perbedaan kesulitan tetap datang dari
+  struktur (cicilan yang mencekik), bukan dari besar guncangannya.
 
 Batas pelengkap: **maksimal 3 anak.** Tanpa batas, pengeluaran naik permanen
 setiap putaran papan dan kebangkrutan menjadi pasti terlepas dari keterampilan
 pemain.
+
+**Invarian 4 — profesi tidak boleh mati oleh dadu saja.**
+
+> Beban anak penuh (3 × biaya per anak) ≤ **60%** arus kas bersih awal.
+
+Kedatangan anak sepenuhnya ditentukan dadu, tanpa satu pun keputusan pemain.
+Bila sebuah profesi tidak bisa memenuhi invarian ini tanpa angka yang konyol,
+yang salah adalah **margin awalnya yang terlalu tipis** — longgarkan
+cicilannya, jangan murahkan anaknya.
+
+**Invarian 5 — jenjang imbal hasil pasar harus jujur.**
+
+> Ekspektasi jangka panjang: reksa dana indeks ≥ saham individual > deposito.
+
+Kalau saham individual menang dalam ekspektasi, game ini mengajarkan judi
+(§8.2). Saham boleh — dan harus — punya sebaran jauh lebih lebar; yang tidak
+boleh adalah imbal hasil harapannya lebih tinggi. Emas boleh setara deposito
+dengan gejolak berkali lipat: itulah harga sebuah pelarian.
+
+**Invarian 6 — krisis harus benar-benar terjadi.**
+
+> Dengan kebijakan seimbang, kas minus terpicu setidaknya sekali per ±40
+> giliran, dan mayoritas permainan memakai tuas darurat minimal sekali.
+
+Setelah penyeimbangan Fase 2, derau harian (Biaya Tak Terduga, Amal) tidak
+lagi memicu kas minus — dan itu benar. Derau harus bisa dilalui; yang tajam
+dan jarang adalah guncangan yang **dirancang**. Tapi §5.3 menyebut momen ini
+pemicu emosi terkuat di seluruh game, jadi bila petak GUNCANG (Fase 5) tidak
+cukup berat, seluruh sistem tiga tuas praktis tidak pernah terpakai. Ukur
+dengan simulator saat menyusun angka GUNCANG.
 
 **Invarian 2 — gradien prioritas utang.**
 
@@ -437,6 +478,35 @@ Isi kartu wajib benar secara literasi finansial: dana darurat didahulukan,
 diversifikasi berguna, indeks mengalahkan tebak-tebakan dalam jangka panjang,
 utang konsumtif berbunga tinggi adalah kebocoran. Game yang memancing emosi
 di atas data keliru hanya melatih judi.
+
+### 8.3 Kelas nilai aset — dua sumbu, bukan satu
+
+Nilai aset kartu **tidak beku**. Mesin penilaian ulang pasar (Fase 3)
+diperluas ke aset kartu lewat `driftBulanan` dan `volatilitasBulanan`
+opsional pada kartu. Tiga kelas jujur:
+
+| Kelas | Contoh | Arus kas | Nilai |
+|---|---|---|---|
+| Apresiasi | Tanah kavling, ruko | Minus/kecil | Naik pelan, kadang melonjak |
+| Stagnan | Kos, kontrakan | Positif stabil | Nyaris diam |
+| Depresiasi | Motor sewa, gerobak, kapal | Positif tinggi | Turun terus |
+
+Pelajarannya: **arus kas dan apresiasi adalah dua sumbu berbeda.** Kapal
+berarus kas terbesar tapi nilainya menyusut; tanah menguras kas tapi diam-diam
+menumpuk kekayaan. Aturan isi: **tidak boleh ada kelas yang unggul di semua
+sumbu** — kalau ada, kelas lainnya cuma hiasan. Diperiksa simulator.
+
+**Keputusan: inflasi kontinu TIDAK dimodelkan.** Perayapan pengeluaran/gaji
+per giliran cuma jadi derau yang menggoyang Garis Arus karena sebab di luar
+kendali pemain, menggerus utang tetap sehingga mengacak Invarian 2, dan
+menjadi pengganggu global bagi semua invarian keseimbangan. Beban emosional
+inflasi disampaikan lewat **kartu Guncang diskrit** (Fase 5): "Harga-harga
+naik. Pengeluaran tetap naik 8%, permanen." Satu pukulan bernama mengajarkan
+lebih banyak daripada perayapan 0,25% yang tak pernah terasa.
+
+Urutan pengerjaan: kelas nilai aset masuk sebagai tambalan kecil setelah
+Fase 4, **sebelum** Fase 5 — angka GUNCANG harus disetel terhadap model aset
+yang sudah final.
 
 ---
 

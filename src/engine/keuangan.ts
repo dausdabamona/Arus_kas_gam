@@ -17,6 +17,12 @@ export interface Aset {
   /** Diisi hanya untuk aset yang dibeli lewat petak Pasar. */
   instrumenId?: string;
   unit?: number;
+  /**
+   * Diisi hanya untuk aset dari kartu Peluang (§8.3). Nilainya bergerak tiap
+   * giliran; arus kasnya tidak — dua sumbu yang terpisah.
+   */
+  driftBulanan?: number;
+  volatilitasBulanan?: number;
 }
 
 /** Satu utang yang menempel pada pemain. */
@@ -302,5 +308,22 @@ export function nilaiUlangAsetPasar(
       const nilai = harga[a.instrumenId] * a.unit;
       return { ...a, nilai, arusKasBulanan: Math.round(nilai * imbal(a.instrumenId)) };
     }),
+  };
+}
+
+/**
+ * Menyegarkan nilai aset kartu (§8.3). Berbeda dari aset pasar, arus kas
+ * bulanannya sengaja dibiarkan tetap: sewa tidak ikut naik-turun mengikuti
+ * harga jual.
+ */
+export function nilaiUlangAsetKartu(
+  kondisi: KondisiKeuangan,
+  gerak: (aset: Aset) => number,
+): KondisiKeuangan {
+  return {
+    ...kondisi,
+    aset: kondisi.aset.map((a) =>
+      a.driftBulanan === undefined ? a : { ...a, nilai: gerak(a) },
+    ),
   };
 }
