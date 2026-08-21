@@ -14,22 +14,23 @@ export const PROFESI: readonly Profesi[] = [
       saldoKas: 10_000_000,
       gajiBersihBulanan: 5_900_000,
       pengeluaranTetap: 3_400_000,
-      biayaPerAnak: 600_000,
+      biayaPerAnak: 400_000,
       jumlahAnak: 1,
+      kaliBerhemat: 0,
       aset: [],
       liabilitas: [
         {
           id: 'kpr-subsidi',
           nama: 'KPR subsidi',
           sisaUtang: 140_000_000,
-          cicilanBulanan: 900_000,
+          cicilanBulanan: 700_000,
           pokokAwal: 140_000_000,
         },
         {
           id: 'motor',
           nama: 'Cicilan motor',
           sisaUtang: 9_000_000,
-          cicilanBulanan: 600_000,
+          cicilanBulanan: 400_000,
           pokokAwal: 9_000_000,
         },
       ],
@@ -42,15 +43,16 @@ export const PROFESI: readonly Profesi[] = [
       saldoKas: 800_000,
       gajiBersihBulanan: 2_200_000,
       pengeluaranTetap: 1_800_000,
-      biayaPerAnak: 600_000,
+      biayaPerAnak: 300_000,
       jumlahAnak: 0,
+      kaliBerhemat: 0,
       aset: [],
       liabilitas: [
         {
           id: 'koperasi',
           nama: 'Utang koperasi',
           sisaUtang: 6_000_000,
-          cicilanBulanan: 300_000,
+          cicilanBulanan: 200_000,
           pokokAwal: 6_000_000,
         },
       ],
@@ -65,6 +67,7 @@ export const PROFESI: readonly Profesi[] = [
       pengeluaranTetap: 5_000_000,
       biayaPerAnak: 1_400_000,
       jumlahAnak: 1,
+      kaliBerhemat: 0,
       aset: [],
       liabilitas: [
         {

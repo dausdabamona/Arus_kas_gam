@@ -94,13 +94,13 @@ describe('petak yang belum berefek di fase ini', () => {
 });
 
 describe('BIAYA_TAK_TERDUGA proporsional', () => {
-  it('tidak pernah melampaui 1,5x gaji bulanan', () => {
+  it('tidak pernah melampaui 0,5x gaji bulanan', () => {
     const sebelum = statePada(2); // dadu 1 → petak 3
     for (let t = 1; t < 300; t++) {
       const sesudah = reduce(sebelum, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
       if (sesudah.posisi !== 3) continue;
       const biaya = sebelum.keuangan.saldoKas - sesudah.keuangan.saldoKas;
-      expect(biaya).toBeLessThanOrEqual(sebelum.keuangan.gajiBersihBulanan * 1.5);
+      expect(biaya).toBeLessThanOrEqual(sebelum.keuangan.gajiBersihBulanan * 0.5);
       expect(biaya).toBeGreaterThan(0);
     }
   });
@@ -115,5 +115,21 @@ describe('petak TAMBAH_ANAK', () => {
       if (coba.posisi === 17) { sesudah = coba; break; }
     }
     expect(sesudah.keuangan.jumlahAnak).toBe(sebelum.keuangan.jumlahAnak + 1);
+  });
+
+  // Tanpa batas ini, pengeluaran naik permanen tiap ~24 giliran sampai
+  // profesi mana pun pasti bangkrut — dibuktikan simulasi sebelum batasnya ada.
+  it('berhenti menambah anak setelah batas tercapai', () => {
+    const penuh: StatePermainan = {
+      ...statePada(16),
+      keuangan: { ...stateAwal('uji-petak', 'asn-3b').keuangan, jumlahAnak: 3 },
+    };
+    for (let t = 1; t < 200; t++) {
+      const coba = reduce(penuh, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
+      if (coba.posisi !== 17) continue;
+      expect(coba.keuangan.jumlahAnak).toBe(3);
+      return;
+    }
+    throw new Error('tidak pernah mendarat di petak tambah anak');
   });
 });

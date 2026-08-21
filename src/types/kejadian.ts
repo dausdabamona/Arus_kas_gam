@@ -17,6 +17,7 @@ export type Kejadian =
   | { t: number; tipe: 'PUTUSKAN'; isi: { kartuId: string; pilihan: 'ambil' | 'tolak' } }
   | { t: number; tipe: 'LUNASI'; isi: { liabilitasId: string; jumlah?: number } }
   | { t: number; tipe: 'JUAL_ASET'; isi: { asetId: string } }
+  | { t: number; tipe: 'TINDAKAN_DARURAT'; isi: { tuas?: 'jual' | 'pinjam' | 'hemat'; asetId?: string } }
   | { t: number; tipe: 'SUHU_BATIN'; isi: { nilai: number; fase: 'sebelum' | 'sesudah' } }
   | { t: number; tipe: 'JEDA_BATIN'; isi: IsiJedaBatin }
   | { t: number; tipe: 'LEWATI_JEDA'; isi: { pemicuId: string } }

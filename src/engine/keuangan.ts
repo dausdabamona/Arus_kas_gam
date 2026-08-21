@@ -47,6 +47,11 @@ export interface KondisiKeuangan {
   saldoKas: number;
   aset: readonly Aset[];
   liabilitas: readonly Liabilitas[];
+  /**
+   * Berapa kali pemain sudah menekan pengeluaran tetap lewat tuas Berhemat.
+   * Searah dan permanen — ini perubahan cara hidup, bukan sakelar (§5.3).
+   */
+  kaliBerhemat: number;
 }
 
 /** Laporan keuangan yang ditampilkan ke pemain. */
@@ -61,6 +66,15 @@ export interface LaporanKeuangan {
 
 /** Bunga pinjaman darurat per bulan (§5.3). */
 export const BUNGA_PINJAMAN_DARURAT = 0.02;
+
+/** Total utang darurat tidak boleh melampaui 6x gaji bulanan (§5.3). */
+export const PLAFON_PINJAMAN_GAJI = 6;
+
+/** Tuas Berhemat hanya bisa ditarik dua kali seumur permainan (§5.3). */
+export const MAKS_BERHEMAT = 2;
+
+/** Sekali berhemat menekan pengeluaran tetap 15% (§5.3). */
+export const POTONGAN_BERHEMAT = 0.15;
 
 const jumlahkan = (angka: readonly number[]): number => angka.reduce((a, b) => a + b, 0);
 
@@ -134,19 +148,66 @@ export function perluTindakanDarurat(k: KondisiKeuangan): boolean {
  */
 export function ambilPinjamanDarurat(k: KondisiKeuangan, jumlah: number): KondisiKeuangan {
   if (jumlah <= 0) throw new Error('Jumlah pinjaman harus lebih dari nol');
+  // Plafon adalah satu-satunya rem yang dirancang untuk spiral utang (§5.3).
+  // Permintaan di atas sisa plafon dipotong, bukan ditolak — pemain tetap
+  // dapat sebagian, dan sisanya memaksa dia memakai tuas lain.
+  const pokok = Math.min(jumlah, sisaPlafonPinjaman(k));
+  if (pokok <= 0) return k;
+
   const pinjaman: Liabilitas = {
     id: `darurat-${k.liabilitas.length + 1}`,
     nama: 'Pinjaman darurat',
-    sisaUtang: jumlah,
-    cicilanBulanan: Math.round(jumlah * BUNGA_PINJAMAN_DARURAT),
+    sisaUtang: pokok,
+    cicilanBulanan: Math.round(pokok * BUNGA_PINJAMAN_DARURAT),
     bungaBulanan: BUNGA_PINJAMAN_DARURAT,
-    pokokAwal: jumlah,
+    pokokAwal: pokok,
   };
   return {
     ...k,
-    saldoKas: k.saldoKas + jumlah,
+    saldoKas: k.saldoKas + pokok,
     liabilitas: [...k.liabilitas, pinjaman],
   };
+}
+
+/** Hanya utang berbunga berjalan yang dihitung sebagai utang darurat. */
+function totalUtangDarurat(kondisi: KondisiKeuangan): number {
+  return kondisi.liabilitas
+    .filter((l) => l.bungaBulanan !== undefined)
+    .reduce((jml, l) => jml + l.sisaUtang, 0);
+}
+
+export function sisaPlafonPinjaman(kondisi: KondisiKeuangan): number {
+  const plafon = kondisi.gajiBersihBulanan * PLAFON_PINJAMAN_GAJI;
+  return Math.max(0, plafon - totalUtangDarurat(kondisi));
+}
+
+export function bisaBerhemat(kondisi: KondisiKeuangan): boolean {
+  return kondisi.kaliBerhemat < MAKS_BERHEMAT;
+}
+
+/**
+ * Menekan pengeluaran tetap. Permanen dan searah — ini perubahan cara hidup,
+ * bukan sakelar. Hanya boleh dipanggil saat kas minus (dijaga di reducer).
+ */
+export function berhemat(kondisi: KondisiKeuangan): KondisiKeuangan {
+  if (!bisaBerhemat(kondisi)) return kondisi;
+  return {
+    ...kondisi,
+    pengeluaranTetap: Math.round(kondisi.pengeluaranTetap * (1 - POTONGAN_BERHEMAT)),
+    kaliBerhemat: kondisi.kaliBerhemat + 1,
+  };
+}
+
+/**
+ * Tuas yang masih bisa ditarik saat kas minus. Daftar kosong berarti
+ * bangkrut — dan itu satu-satunya syarat bangkrut yang sah (§5.3).
+ */
+export function tuasTersedia(kondisi: KondisiKeuangan): Array<'jual' | 'pinjam' | 'hemat'> {
+  const tuas: Array<'jual' | 'pinjam' | 'hemat'> = [];
+  if (kondisi.aset.length > 0) tuas.push('jual');
+  if (sisaPlafonPinjaman(kondisi) > 0) tuas.push('pinjam');
+  if (bisaBerhemat(kondisi)) tuas.push('hemat');
+  return tuas;
 }
 
 /**

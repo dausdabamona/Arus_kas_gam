@@ -24,6 +24,7 @@ function kondisiContoh(ubah: Partial<KondisiKeuangan> = {}): KondisiKeuangan {
     pengeluaranTetap: 3_400_000,
     biayaPerAnak: 450_000,
     jumlahAnak: 0,
+    kaliBerhemat: 0,
     saldoKas: 2_000_000,
     aset: [],
     liabilitas: [
