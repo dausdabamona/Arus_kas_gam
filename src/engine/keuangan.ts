@@ -181,6 +181,16 @@ export function sisaPlafonPinjaman(kondisi: KondisiKeuangan): number {
   return Math.max(0, plafon - totalUtangDarurat(kondisi));
 }
 
+/**
+ * Penghasilan yang tersisa setelah biaya hidup tetap — sebelum cicilan dan
+ * anak. Inilah takaran yang benar untuk guncangan acak (§5.4 Invarian 3):
+ * menskalakannya ke gaji menghukum profesi bermargin tipis secara tidak
+ * proporsional, karena gaji dan daya tahan adalah dua satuan yang berbeda.
+ */
+export function penghasilanBebas(kondisi: KondisiKeuangan): number {
+  return Math.max(0, kondisi.gajiBersihBulanan - kondisi.pengeluaranTetap);
+}
+
 export function bisaBerhemat(kondisi: KondisiKeuangan): boolean {
   return kondisi.kaliBerhemat < MAKS_BERHEMAT;
 }

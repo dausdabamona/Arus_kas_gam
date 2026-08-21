@@ -5,6 +5,7 @@ import {
   arusKasBulanan,
   jualAset,
   lunasiPinjaman,
+  penghasilanBebas,
   perluTindakanDarurat,
   tuasTersedia,
   berhemat,
@@ -20,21 +21,24 @@ import type { KartuPeluang } from '../types/kartu';
 import type { Prng } from './prng';
 
 /**
- * Rentang biaya tak terduga, dalam persepuluhan gaji bulanan.
- * Dijaga tetap kecil dengan sengaja: petak ini memancing "takut kurang"
- * (§6.1), bukan menghabisi. Guncangan berat adalah tugas petak GUNCANG di
- * Fase 5. Angkanya terikat `simulasi.test.ts` — menaikkannya tanpa
- * menaikkan arus kas dasar akan membuat sistem tidak konvergen lagi.
+ * Rentang biaya tak terduga, dalam persepuluhan PENGHASILAN BEBAS
+ * (gaji dikurangi biaya hidup tetap) — bukan gaji. Gaji dan daya tahan
+ * adalah dua satuan berbeda: guru bergaji Rp 2,2 juta hanya bersisa
+ * Rp 400 ribu, jadi skala-ke-gaji menghukumnya jauh lebih berat daripada
+ * ASN. Angkanya terikat Invarian 3 di `simulasi.test.ts`.
  */
-const BIAYA_PENGALI_MIN = 1; // 0,1x gaji
-const BIAYA_PENGALI_MAKS = 5; // 0,5x gaji
+const BIAYA_PENGALI_MIN = 2; // 0,2x penghasilan bebas
+const BIAYA_PENGALI_MAKS = 4; // 0,4x penghasilan bebas
+
+/** Batas derma, sebagai kelipatan penghasilan bebas. */
+const AMAL_BATAS_PENGHASILAN = 0.3;
 
 /**
  * Batas jumlah anak. Tanpa batas, petak TAMBAH_ANAK menaikkan pengeluaran
  * permanen tiap ~24 giliran sampai profesi mana pun pasti bangkrut — dan
  * satu permainan hanya 20–35 menit, jadi belasan anak juga tidak masuk akal.
  */
-const MAKS_ANAK = 3;
+export const MAKS_ANAK = 2;
 
 /** State kosong sebelum kejadian apa pun dijalankan. */
 export function stateAwal(seed: string, profesiId: string): StatePermainan {
@@ -71,10 +75,11 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
       return { ...state, kartuTerbuka: ambilSatu(prng, KARTU_PELUANG_BESAR) };
 
     case 'BIAYA_TAK_TERDUGA': {
-      // Proporsional terhadap gaji, bukan nominal tetap — supaya beratnya
-      // terasa sama di semua profesi tanpa penyetelan satu per satu.
+      // Proporsional terhadap penghasilan bebas, bukan nominal tetap —
+      // supaya beratnya terasa sama di semua profesi tanpa penyetelan satu
+      // per satu, dan tanpa menghukum profesi bermargin tipis.
       const pengali = bilanganAcak(prng, BIAYA_PENGALI_MIN, BIAYA_PENGALI_MAKS) / 10;
-      const biaya = Math.round(state.keuangan.gajiBersihBulanan * pengali);
+      const biaya = Math.round(penghasilanBebas(state.keuangan) * pengali);
       return {
         ...state,
         keuangan: { ...state.keuangan, saldoKas: state.keuangan.saldoKas - biaya },
@@ -82,7 +87,11 @@ function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
     }
 
     case 'AMAL': {
-      const derma = Math.max(0, Math.round(state.keuangan.saldoKas * 0.1));
+      // Sepersepuluh kas, tapi dibatasi terhadap penghasilan bebas. Tanpa
+      // batas ini kas yang menumpuk membuat derma tumbuh tanpa henti sampai
+      // menyerap seluruh pemasukan — Invarian 3 lalu mustahil dipenuhi.
+      const batas = penghasilanBebas(state.keuangan) * AMAL_BATAS_PENGHASILAN;
+      const derma = Math.max(0, Math.round(Math.min(state.keuangan.saldoKas * 0.1, batas)));
       return {
         ...state,
         keuangan: { ...state.keuangan, saldoKas: state.keuangan.saldoKas - derma },

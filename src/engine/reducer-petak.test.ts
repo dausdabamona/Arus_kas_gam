@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { reduce, stateAwal } from './reducer';
-import { arusKasBulanan } from './keuangan';
+import { reduce, stateAwal, MAKS_ANAK } from './reducer';
+import { arusKasBulanan, penghasilanBebas } from './keuangan';
 import { cariKartu } from '../data/kartu-peluang';
 import type { StatePermainan } from '../types/state';
 
@@ -94,13 +94,16 @@ describe('petak yang belum berefek di fase ini', () => {
 });
 
 describe('BIAYA_TAK_TERDUGA proporsional', () => {
-  it('tidak pernah melampaui 0,5x gaji bulanan', () => {
+  // Terikat ke penghasilan bebas, bukan gaji: gaji dan daya tahan adalah dua
+  // satuan berbeda, dan menyamakannya pernah membuat profesi bermargin tipis
+  // net-negatif sebelum pemain memutuskan apa pun (§5.4 Invarian 3).
+  it('tidak pernah melampaui 0,4x penghasilan bebas', () => {
     const sebelum = statePada(2); // dadu 1 → petak 3
     for (let t = 1; t < 300; t++) {
       const sesudah = reduce(sebelum, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
       if (sesudah.posisi !== 3) continue;
       const biaya = sebelum.keuangan.saldoKas - sesudah.keuangan.saldoKas;
-      expect(biaya).toBeLessThanOrEqual(sebelum.keuangan.gajiBersihBulanan * 0.5);
+      expect(biaya).toBeLessThanOrEqual(penghasilanBebas(sebelum.keuangan) * 0.4);
       expect(biaya).toBeGreaterThan(0);
     }
   });
@@ -122,12 +125,12 @@ describe('petak TAMBAH_ANAK', () => {
   it('berhenti menambah anak setelah batas tercapai', () => {
     const penuh: StatePermainan = {
       ...statePada(16),
-      keuangan: { ...stateAwal('uji-petak', 'asn-3b').keuangan, jumlahAnak: 3 },
+      keuangan: { ...stateAwal('uji-petak', 'asn-3b').keuangan, jumlahAnak: MAKS_ANAK },
     };
     for (let t = 1; t < 200; t++) {
       const coba = reduce(penuh, { t, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
       if (coba.posisi !== 17) continue;
-      expect(coba.keuangan.jumlahAnak).toBe(3);
+      expect(coba.keuangan.jumlahAnak).toBe(MAKS_ANAK);
       return;
     }
     throw new Error('tidak pernah mendarat di petak tambah anak');

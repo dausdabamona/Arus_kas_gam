@@ -1,5 +1,12 @@
 import { reduce, stateAwal } from './reducer';
-import { perluTindakanDarurat, hitungLaporan, lolosTahapSatu, tuasTersedia } from './keuangan';
+import {
+  perluTindakanDarurat,
+  hitungLaporan,
+  lolosTahapSatu,
+  tuasTersedia,
+  arusKasBulanan,
+} from './keuangan';
+import { petakDi, hitungGajianDilewati } from './papan';
 import type { StatePermainan } from '../types/state';
 import type { Kejadian } from '../types/kejadian';
 
@@ -10,6 +17,19 @@ export interface HasilSimulasi {
   akhir: 'lolos' | 'bangkrut' | 'batas-giliran';
   puncakPengeluaran: number;
   puncakUtang: number;
+  /**
+   * Rata-rata kas masuk dari petak GAJIAN per giliran, diukur dari jalannya
+   * simulasi. Dihitung kotor terhadap biaya anak: biaya anak sudah dipotong
+   * di dalam arus kas bulanan, jadi kalau tidak ditambahkan kembali di sini
+   * ia akan terhitung dua kali saat masuk ke `drainPerGiliran`.
+   */
+  pemasukanPerGiliran: number;
+  /**
+   * Rata-rata kas keluar acak per giliran: BIAYA_TAK_TERDUGA, AMAL, dan
+   * biaya anak yang benar-benar terbayar saat gajian. Diukur dari selisih
+   * saldo kas yang sungguh terjadi, bukan dari rumus peluang.
+   */
+  drainPerGiliran: number;
   state: StatePermainan;
 }
 
@@ -55,6 +75,9 @@ export function jalankanSimulasi(opsi: {
   let t = 1;
   let puncakPengeluaran = 0;
   let puncakUtang = 0;
+  let totalPemasukan = 0;
+  let totalDrain = 0;
+  let giliranDijalani = 0;
 
   const catat = () => {
     puncakPengeluaran = Math.max(puncakPengeluaran, hitungLaporan(state.keuangan).totalPengeluaran);
@@ -71,8 +94,34 @@ export function jalankanSimulasi(opsi: {
     catat();
   };
 
+  /** Diukur tepat di sekitar satu lemparan dadu, dari selisih kas yang nyata. */
+  const ukur = (sebelum: StatePermainan, sesudah: StatePermainan) => {
+    giliranDijalani++;
+    const mata = sesudah.riwayatDadu[sesudah.riwayatDadu.length - 1];
+    const gajian = hitungGajianDilewati(sebelum.posisi, mata);
+
+    const arus = arusKasBulanan(sebelum.keuangan);
+    const biayaAnak = sebelum.keuangan.biayaPerAnak * sebelum.keuangan.jumlahAnak;
+    const kasDariGajian = arus * gajian;
+
+    totalPemasukan += (arus + biayaAnak) * gajian;
+    totalDrain += biayaAnak * gajian;
+
+    const petak = petakDi(sesudah.posisi);
+    if (petak === 'BIAYA_TAK_TERDUGA' || petak === 'AMAL') {
+      totalDrain += sebelum.keuangan.saldoKas + kasDariGajian - sesudah.keuangan.saldoKas;
+    }
+  };
+
+  const rerata = () => ({
+    pemasukanPerGiliran: giliranDijalani === 0 ? 0 : totalPemasukan / giliranDijalani,
+    drainPerGiliran: giliranDijalani === 0 ? 0 : totalDrain / giliranDijalani,
+  });
+
   for (let giliran = 0; giliran < opsi.maksGiliran; giliran++) {
+    const sebelumDadu = state;
     kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } });
+    ukur(sebelumDadu, state);
 
     if (state.kartuTerbuka) {
       kirim({
@@ -94,12 +143,19 @@ export function jalankanSimulasi(opsi: {
     }
 
     if (state.status === 'selesai') {
-      return { giliran, akhir: 'bangkrut', puncakPengeluaran, puncakUtang, state };
+      return { giliran, akhir: 'bangkrut', ...rerata(), puncakPengeluaran, puncakUtang, state };
     }
     if (lolosTahapSatu(hitungLaporan(state.keuangan))) {
-      return { giliran, akhir: 'lolos', puncakPengeluaran, puncakUtang, state };
+      return { giliran, akhir: 'lolos', ...rerata(), puncakPengeluaran, puncakUtang, state };
     }
   }
 
-  return { giliran: opsi.maksGiliran, akhir: 'batas-giliran', puncakPengeluaran, puncakUtang, state };
+  return {
+    giliran: opsi.maksGiliran,
+    akhir: 'batas-giliran',
+    ...rerata(),
+    puncakPengeluaran,
+    puncakUtang,
+    state,
+  };
 }

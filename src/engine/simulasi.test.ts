@@ -36,6 +36,16 @@ describe('konvergensi sistem', () => {
     }
   });
 
+  it.each(PROFESI.map((p) => p.id))(
+    'profesi %s memenuhi Invarian 3: pemasukan >= 1,5x drain per giliran',
+    (profesiId) => {
+      for (const seed of SEED) {
+        const h = jalankanSimulasi({ seed, profesiId, kebijakan: 'hati-hati', maksGiliran: 1000 });
+        expect(h.pemasukanPerGiliran).toBeGreaterThanOrEqual(h.drainPerGiliran * 1.5);
+      }
+    },
+  );
+
   it('kebijakan hati-hati bisa lolos, bukan sekadar bertahan', () => {
     const hasil = SEED.map((seed) =>
       jalankanSimulasi({ seed, profesiId: 'asn-3b', kebijakan: 'seimbang', maksGiliran: 1000 }),
