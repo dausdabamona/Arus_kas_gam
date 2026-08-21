@@ -80,18 +80,29 @@ pilihan yang terpasang di muka, dan tombol lempar dadu mati selama kas minus.
 
 - [x] `simulasi.test.ts` hijau untuk seluruh profesi, tiga kebijakan, lima seed
 - [x] Invarian 1 §5.4 punya tesnya sendiri di `darurat.test.ts`
-- [x] Invarian 3 §5.4 diukur dari jalannya simulasi, bukan dari rumus, dan
-      dijaga tes untuk ketiga profesi
+      ("penghematan maksimum melebihi bunga pada plafon penuh")
+- [x] Invarian 3 §5.4 **diukur dari jalannya simulasi, bukan dari rumus**, dan
+      dijaga tes untuk ketiga profesi. `HasilSimulasi` melaporkan
+      `pemasukanPerGiliran` dan `drainPerGiliran`; keduanya dihitung di dalam
+      pelari simulasi dengan membandingkan `saldoKas` sebelum dan sesudah tiap
+      lemparan lalu menggolongkannya lewat petak tempat pemain mendarat.
+      **`reduce` tetap murni** — tidak ada bidang pencatatan yang ditambahkan
+      ke mesin.
 - [x] Kebijakan `serakah` selalu berakhir — tidak ada permainan tanpa ujung
-- [x] Kebijakan `hati-hati` **mandek di `batas-giliran`, bukan bangkrut.**
-      Pemain yang menolak setiap peluang tidak meledak dan tidak mati; dia
-      hanya tidak pernah maju. Itu justru bunyi §6.1 tentang petak Gajian —
-      "kelegaan sesaat, lalu sadar tidak berubah apa-apa" — jadi kemandekan
-      di sini adalah perilaku yang benar, bukan cacat, dan dituntut oleh tes.
+      (tes "kebijakan serakah selalu berakhir")
+- [x] Kebijakan `hati-hati` **mandek di `batas-giliran`, bukan bangkrut**, dan
+      itu dituntut tes, bukan sekadar ditolerir (tes "kebijakan hati-hati
+      mandek, bukan bangkrut — §6.1"). Pemain yang menolak setiap peluang
+      tidak meledak dan tidak mati; dia hanya tidak pernah maju. Itu justru
+      bunyi §6.1 tentang petak Gajian — "kelegaan sesaat, lalu sadar tidak
+      berubah apa-apa" — jadi kemandekan di sini adalah perilaku yang benar,
+      bukan cacat.
 - [x] Tidak pernah ada keadaan kas minus tanpa satu pun tombol yang bisa
       ditekan
 - [x] Tuas bawaan reducer tidak pernah berujung panik: saat pemain tidak
-      memilih, urutannya `hemat` → `pinjam` → `jual`
+      memilih, urutannya `hemat` → `pinjam` → `jual`. Urutan tampil yang
+      dikembalikan `tuasTersedia()` tetap `jual` → `pinjam` → `hemat` dan
+      tidak ikut berubah.
 - [x] `npm test`, `npm run lint`, `npm run build` bersih
 
 ---

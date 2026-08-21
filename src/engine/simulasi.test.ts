@@ -15,7 +15,7 @@ describe('konvergensi sistem', () => {
     },
   );
 
-  it('selalu berakhir — tidak ada permainan tanpa ujung', () => {
+  it('kebijakan serakah selalu berakhir — tidak ada permainan tanpa ujung', () => {
     for (const seed of SEED) {
       for (const profesi of PROFESI) {
         const hasil = jalankanSimulasi({
@@ -23,6 +23,17 @@ describe('konvergensi sistem', () => {
         });
         expect(hasil.akhir).not.toBe('batas-giliran');
       }
+    }
+  });
+
+  // Pemain yang menolak setiap peluang tidak meledak dan tidak mati; dia
+  // hanya tidak pernah maju. Itu justru bunyi §6.1 tentang petak Gajian —
+  // "kelegaan sesaat, lalu sadar tidak berubah apa-apa" — jadi kemandekan
+  // di sini adalah perilaku yang benar, dan dituntut, bukan sekadar ditolerir.
+  it('kebijakan hati-hati mandek, bukan bangkrut — §6.1', () => {
+    for (const seed of SEED) {
+      const h = jalankanSimulasi({ seed, profesiId: 'asn-3b', kebijakan: 'hati-hati', maksGiliran: 1000 });
+      expect(h.akhir).toBe('batas-giliran');
     }
   });
 
