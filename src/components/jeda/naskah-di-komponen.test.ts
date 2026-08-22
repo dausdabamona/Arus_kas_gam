@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import * as NASKAH_JEDA from '../../data/naskah-jeda';
 import * as NASKAH_GERBANG from '../../data/naskah-gerbang';
+import * as NASKAH_AKHIR from '../../data/naskah-akhir';
 
 const KOMPONEN = [
   'src/components/jeda/JedaBatin.tsx',
@@ -10,6 +11,9 @@ const KOMPONEN = [
   'src/components/papan/KartuGuncangTampil.tsx',
   'src/screens/LayarGerbang.tsx',
   'src/components/papan/PitaKebiasaan.tsx',
+  // Layar paling berbahaya di permainan ini justru yang paling lama tanpa
+  // penjaga: ia dibaca sebagai penilaian atas seorang manusia.
+  'src/screens/LayarAkhir.tsx',
 ];
 
 /** Semua kalimat yang benar-benar ada di naskah, untuk dibandingkan. */
@@ -20,7 +24,11 @@ function kumpulkan(nilai: unknown, keluar: string[] = []): string[] {
   else if (nilai && typeof nilai === 'object') for (const x of Object.values(nilai)) kumpulkan(x, keluar);
   return keluar;
 }
-const NASKAH_SAH = [...kumpulkan(NASKAH_JEDA), ...kumpulkan(NASKAH_GERBANG)];
+const NASKAH_SAH = [
+  ...kumpulkan(NASKAH_JEDA),
+  ...kumpulkan(NASKAH_GERBANG),
+  ...kumpulkan(NASKAH_AKHIR),
+];
 
 /**
  * Teks yang sampai ke mata pemain: isi JSX di antara tag, dan isi string

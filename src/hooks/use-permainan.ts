@@ -23,6 +23,8 @@ interface TokoPermainan {
   mulai: (seed: string, profesiId: string) => Promise<void>;
   kirim: (kejadian: KejadianBaru) => Promise<void>;
   muat: (permainanId: string) => Promise<void>;
+  /** Menutup permainan yang sedang dipegang dan kembali ke layar mulai. */
+  tutup: () => void;
 }
 
 export const usePermainan = create<TokoPermainan>((set, get) => ({
@@ -31,6 +33,12 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
   nomorKejadian: 0,
   memproses: false,
   galatMuat: null,
+
+  tutup() {
+    // Log dan jurnalnya tetap di basis data. Menutup permainan berarti
+    // melepaskannya dari layar, bukan menghapusnya — catatan itu milik pemain.
+    set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: null });
+  },
 
   async mulai(seed, profesiId) {
     if (get().memproses) return;

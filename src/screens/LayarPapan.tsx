@@ -15,6 +15,11 @@ import { cariInstrumen } from '../data/instrumen';
 import { PitaKebiasaan } from '../components/papan/PitaKebiasaan';
 import { LABEL_TAHAP, PESAN_REFLEKS_AMBIL_ALIH } from '../data/naskah-gerbang';
 import { LABEL_BENIH, PENJELASAN_BENIH } from '../data/naskah-sistem';
+import {
+  AJAKAN_BERHENTI,
+  AJAKAN_NIAT_TERCAPAI,
+  PENJELASAN_BERHENTI,
+} from '../data/naskah-akhir';
 import { cariProfesi } from '../data/profesi';
 import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
@@ -128,6 +133,39 @@ export function LayarPapan() {
       <div className="mt-5">
         <BarisBot bot={state.bot} />
       </div>
+
+      {/*
+        Dua syarat menang tahap 2 (§7.3), berdiri di papan dan bukan
+        disembunyikan di dalam lembar: syarat menang yang tidak ditemukan siapa
+        pun adalah syarat menang yang tidak ada.
+
+        Keduanya penilaian PEMAIN. Niat adalah kalimat yang ia tulis sendiri di
+        Gerbang, dan hanya ia yang tahu apakah kalimat itu sudah terjadi;
+        mesin tidak berhak menyatakannya atas nama dia.
+      */}
+      {state.tahap === 'luas' && (
+        <div className="mt-6 border-t border-teal-muda pt-4">
+          <div className="flex gap-2">
+            <Tombol
+              jenis="kedua"
+              lebarPenuh
+              disabled={memproses}
+              onClick={() => void kirim({ tipe: 'AKHIR', isi: { alasan: 'lolos' } })}
+            >
+              {AJAKAN_NIAT_TERCAPAI}
+            </Tombol>
+            <Tombol
+              jenis="kedua"
+              lebarPenuh
+              disabled={memproses}
+              onClick={() => void kirim({ tipe: 'AKHIR', isi: { alasan: 'menyerah' } })}
+            >
+              {AJAKAN_BERHENTI}
+            </Tombol>
+          </div>
+          <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_BERHENTI}</p>
+        </div>
+      )}
 
       {state.pasarTerbuka && <KartuPasar beku={jedaTerbuka} />}
 

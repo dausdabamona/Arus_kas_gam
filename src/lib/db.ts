@@ -83,6 +83,12 @@ export async function tambahJurnal(entri: EntriJurnal): Promise<void> {
   await db.jurnal.add(entri);
 }
 
+/** Entri jurnal satu permainan, terlama dulu — urutan ia ditanam. */
+export async function jurnalPermainan(permainanId: string): Promise<EntriJurnal[]> {
+  const baris = await db.jurnal.where('permainanId').equals(permainanId).toArray();
+  return baris.sort((a, b) => a.dibuatPada - b.dibuatPada);
+}
+
 export async function semuaJurnal(): Promise<EntriJurnal[]> {
   return db.jurnal.orderBy('dibuatPada').reverse().toArray();
 }
