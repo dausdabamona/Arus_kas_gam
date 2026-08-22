@@ -65,7 +65,7 @@ export function KartuPasar({ beku = false }: Props) {
         <p className="text-sm text-tinta/70">{instrumen.keterangan}</p>
 
         <div>
-          <p className="text-xs uppercase tracking-wide text-tinta/50">Harga per unit</p>
+          <p className="text-xs uppercase tracking-wide text-tinta/70">Harga per unit</p>
           <p className="text-[32px] font-bold tabular-nums tracking-tight">{rupiah(harga)}</p>
           {selisih !== 0 && (
             <p className={`text-sm tabular-nums ${selisih > 0 ? 'text-untung' : 'text-rugi'}`}>
@@ -74,12 +74,12 @@ export function KartuPasar({ beku = false }: Props) {
           )}
         </div>
 
-        <p aria-live="polite" className="text-sm tabular-nums text-tinta/60">
+        <p aria-live="polite" className="text-sm tabular-nums text-tinta/70">
           Tawaran menutup dalam {detikTersisa} detik. Harganya terus bergerak.
         </p>
 
         {dimiliki > 0 && (
-          <p className="text-sm text-tinta/60">
+          <p className="text-sm text-tinta/70">
             Dimiliki: <span className="tabular-nums">{dimiliki}</span> unit
           </p>
         )}

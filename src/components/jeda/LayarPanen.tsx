@@ -51,24 +51,24 @@ export function LayarPanen() {
         {/* Dua sisi, bobot sama, sengaja bisa berlawanan warna — §9.3. */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-teal-muda/40 p-3">
-            <p className="text-xs uppercase tracking-wide text-tinta/50">{NASKAH_TUAI.hasilLuar}</p>
+            <p className="text-xs uppercase tracking-wide text-tinta/70">{NASKAH_TUAI.hasilLuar}</p>
             <p className="mt-1">
               {luarTerukur ? (
                 <Uang nilai={hasilLuar} berwarna />
               ) : (
-                <span className="text-base tabular-nums text-tinta/50">{NASKAH_TUAI.takTerukur}</span>
+                <span className="text-base tabular-nums text-tinta/70">{NASKAH_TUAI.takTerukur}</span>
               )}
             </p>
           </div>
           <div className="rounded-xl bg-teal-muda/40 p-3">
-            <p className="text-xs uppercase tracking-wide text-tinta/50">{NASKAH_TUAI.hasilDalam}</p>
+            <p className="text-xs uppercase tracking-wide text-tinta/70">{NASKAH_TUAI.hasilDalam}</p>
             <p
               className={`mt-1 text-base ${
                 panen.hasilDalam === 'tenang'
                   ? 'text-untung'
                   : panen.hasilDalam === 'tersulut'
                     ? 'text-rugi'
-                    : 'text-tinta/50'
+                    : 'text-tinta/70'
               }`}
             >
               {panen.hasilDalam === null ? NASKAH_TUAI.takTerukur : NASKAH_TUAI[panen.hasilDalam]}

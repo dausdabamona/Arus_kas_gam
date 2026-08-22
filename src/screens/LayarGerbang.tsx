@@ -50,7 +50,7 @@ export function LayarGerbang() {
             onChange={(e) => setNiat(e.target.value)}
             className="w-full rounded-xl border border-tinta/15 bg-ivory p-3 text-base text-tinta"
           />
-          <p className="text-xs text-tinta/50">{PETUNJUK_NIAT}</p>
+          <p className="text-xs text-tinta/70">{PETUNJUK_NIAT}</p>
           <Tombol
             onClick={() => void kirim({ tipe: 'GERBANG_NIAT', isi: { niat } })}
             disabled={niat.trim().length === 0 || memproses}
@@ -67,7 +67,7 @@ export function LayarGerbang() {
 
           {akanDibawa.length > 0 ? (
             <div className="space-y-3">
-              <h2 className="text-sm uppercase tracking-wide text-tinta/50">{JUDUL_KEBIASAAN}</h2>
+              <h2 className="text-sm uppercase tracking-wide text-tinta/70">{JUDUL_KEBIASAAN}</h2>
               <p className="text-sm leading-relaxed text-tinta/80">{PENJELASAN_KEBIASAAN}</p>
               <ul className="space-y-2">
                 {akanDibawa.map((berjalan) => {

@@ -19,7 +19,7 @@ function Baris({ label, catatan, nilai }: { label: string; catatan?: string; nil
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <span className="min-w-0 text-sm text-tinta/70">
         {label}
-        {catatan && <span className="block text-xs text-tinta/45">{catatan}</span>}
+        {catatan && <span className="block text-xs text-tinta/70">{catatan}</span>}
       </span>
       <Uang nilai={nilai} />
     </div>
@@ -43,7 +43,7 @@ function BarisUtang({
     >
       <span className="min-w-0 text-sm">
         {utang.nama}
-        <span className="block text-xs text-tinta/45">
+        <span className="block text-xs text-tinta/70">
           {catatan ?? `Sisa ${rupiah(utang.sisaUtang)}`}
         </span>
       </span>
@@ -74,12 +74,12 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
     <div className="space-y-6">
       <section aria-label="Arus kas bulanan" className="space-y-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-tinta/50">Arus kas bulanan</p>
+          <p className="text-xs uppercase tracking-wide text-tinta/70">Arus kas bulanan</p>
           <Uang nilai={laporan.arusKasBulanan} besar berwarna />
         </div>
 
         <div className="border-t border-teal-muda pt-2">
-          <h3 className="text-xs uppercase tracking-wide text-tinta/50">Masuk</h3>
+          <h3 className="text-xs uppercase tracking-wide text-tinta/70">Masuk</h3>
           <Baris label="Gaji" nilai={laporan.pendapatanAktif} />
           {asetBerarusKas.map((a) => (
             <Baris key={a.id} label={a.nama} nilai={a.arusKasBulanan} />
@@ -87,7 +87,7 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
         </div>
 
         <div className="border-t border-teal-muda pt-2">
-          <h3 className="text-xs uppercase tracking-wide text-tinta/50">Keluar</h3>
+          <h3 className="text-xs uppercase tracking-wide text-tinta/70">Keluar</h3>
           <Baris label="Hidup tetap" nilai={-keuangan.pengeluaranTetap} />
           <Baris
             label={`Biaya anak (${keuangan.jumlahAnak})`}
@@ -107,14 +107,14 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
       </section>
 
       <section aria-label="Neraca" className="space-y-3">
-        <h2 className="text-xs uppercase tracking-wide text-tinta/50">Neraca</h2>
+        <h2 className="text-xs uppercase tracking-wide text-tinta/70">Neraca</h2>
 
         <Baris label="Kas" nilai={keuangan.saldoKas} />
 
         <div className="border-t border-teal-muda pt-2">
-          <h3 className="text-xs uppercase tracking-wide text-tinta/50">Aset</h3>
+          <h3 className="text-xs uppercase tracking-wide text-tinta/70">Aset</h3>
           {keuangan.aset.length === 0 && (
-            <p className="py-2 text-sm text-tinta/50">Belum ada.</p>
+            <p className="py-2 text-sm text-tinta/70">Belum ada.</p>
           )}
           {keuangan.aset.map((a) => {
             const melekat = utangMelekat(keuangan, a.id);
@@ -130,7 +130,7 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
                   <Uang nilai={a.nilai} />
                 </div>
                 <div className="mt-0.5 flex items-baseline justify-between gap-3 text-xs">
-                  <span className="text-tinta/45">
+                  <span className="text-tinta/70">
                     {a.unit !== undefined
                       ? `${a.unit} unit x ${rupiah(Math.round(a.nilai / a.unit))}`
                       : sisaMelekat > 0
@@ -139,7 +139,7 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
                   </span>
                   {/* Ekuitas negatif ditampilkan apa adanya. Menyembunyikannya
                       membuat aset terbenam tampak seperti tabungan. */}
-                  <span className={ekuitas < 0 ? 'text-rugi' : 'text-tinta/60'}>
+                  <span className={ekuitas < 0 ? 'text-rugi' : 'text-tinta/70'}>
                     <Uang nilai={ekuitas} />
                   </span>
                 </div>
@@ -149,8 +149,8 @@ export function LaporanKeuangan({ keuangan, onPilihLiabilitas }: Props) {
         </div>
 
         <div className="border-t border-teal-muda pt-2">
-          <h3 className="text-xs uppercase tracking-wide text-tinta/50">Utang murni</h3>
-          {utangMurni.length === 0 && <p className="py-2 text-sm text-tinta/50">Tidak ada.</p>}
+          <h3 className="text-xs uppercase tracking-wide text-tinta/70">Utang murni</h3>
+          {utangMurni.length === 0 && <p className="py-2 text-sm text-tinta/70">Tidak ada.</p>}
           {utangMurni.map((l) => (
             <BarisUtang key={l.id} utang={l} onPilih={() => onPilihLiabilitas(l.id)} />
           ))}

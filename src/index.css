@@ -10,7 +10,29 @@
     @apply bg-ivory text-tinta font-sans antialiased;
     overscroll-behavior-y: none;
   }
+  /*
+    Target sentuh minimal 44x44 (§13.1). Aturan ini ditulis di Fase 0 untuk
+    tombol saja, dan kendali yang datang belakangan tidak pernah ikut: kolom
+    benih terukur 286x38 dan slider Suhu Batin 320x16 di layar 360 px.
+    Slider itu kendali paling penting di seluruh produk — seluruh protokol 4T
+    lewat sana — dan ia yang paling jauh dari aturannya sendiri.
+  */
   button {
     @apply min-h-sentuh min-w-sentuh;
+  }
+  input,
+  textarea,
+  select {
+    @apply min-h-sentuh;
+  }
+  /*
+    Tinggi penuh, bukan sekadar min-height: bawaan peramban memusatkan trek
+    tipis di dalam kotak, jadi daerah yang bisa disentuh ikut setinggi kotaknya.
+    Tampilan treknya sengaja dibiarkan bawaan — mengganti appearance berarti
+    menulis ulang trek dan bulatannya sendiri di tiap peramban, dan bulatan
+    yang salah gambar lebih buruk daripada yang tipis.
+  */
+  input[type='range'] {
+    height: theme('minHeight.sentuh');
   }
 }

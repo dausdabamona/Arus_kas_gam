@@ -88,10 +88,10 @@ export function LayarPapan() {
     <main className="mx-auto max-w-md p-5 pb-28">
       <header className="flex items-baseline justify-between">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-tinta/50">
+          <p className="text-xs uppercase tracking-wide text-tinta/70">
             {LABEL_TAHAP[state.tahap]}
           </p>
-          <p className="text-sm tabular-nums text-tinta/60">Giliran {state.giliran}</p>
+          <p className="text-sm tabular-nums text-tinta/70">Giliran {state.giliran}</p>
         </div>
         <Uang nilai={state.keuangan.saldoKas} berwarna />
       </header>
@@ -102,7 +102,7 @@ export function LayarPapan() {
         yang menyela.
       */}
       {state.tahap === 'luas' && state.niat && (
-        <p className="mt-2 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/60">
+        <p className="mt-2 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/70">
           {state.niat}
         </p>
       )}
@@ -163,7 +163,7 @@ export function LayarPapan() {
               {AJAKAN_BERHENTI}
             </Tombol>
           </div>
-          <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_BERHENTI}</p>
+          <p className="mt-2 text-xs text-tinta/70">{PENJELASAN_BERHENTI}</p>
         </div>
       )}
 
@@ -231,10 +231,10 @@ export function LayarPapan() {
           permainan, dan antarmuka tidak boleh berpura-pura cukup.
         */}
         <div data-benih className="mt-6 border-t border-teal-muda pt-3">
-          <p className="text-xs uppercase tracking-wide text-tinta/50">{LABEL_BENIH}</p>
+          <p className="text-xs uppercase tracking-wide text-tinta/70">{LABEL_BENIH}</p>
           <p className="mt-1 select-all break-all font-mono text-sm text-tinta/80">{state.seed}</p>
-          <p className="text-xs text-tinta/50">{cariProfesi(state.profesiId).nama}</p>
-          <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_BENIH}</p>
+          <p className="text-xs text-tinta/70">{cariProfesi(state.profesiId).nama}</p>
+          <p className="mt-2 text-xs text-tinta/70">{PENJELASAN_BENIH}</p>
         </div>
       </LembarBawah>
 

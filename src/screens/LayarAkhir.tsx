@@ -42,7 +42,7 @@ export function LayarAkhir() {
 
   return (
     <main className="mx-auto max-w-md p-5 pb-10">
-      <p className="text-xs uppercase tracking-wide text-tinta/50">{JUDUL_LAYAR}</p>
+      <p className="text-xs uppercase tracking-wide text-tinta/70">{JUDUL_LAYAR}</p>
       {/*
         Tanpa kuadran saat papan Kemerdekaan belum terbaca. Silang dua papan
         butuh dua sumbu; menaruh orang di kolom "rendah" karena ia tidak diukur
@@ -57,7 +57,7 @@ export function LayarAkhir() {
           : KETERANGAN_SATU_PAPAN[r.kekayaan.tinggi ? 'kaya' : 'belum']}
       </p>
       {r.alasanAkhir && (
-        <p className="mt-3 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/60">
+        <p className="mt-3 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/70">
           {KETERANGAN_AKHIR[r.alasanAkhir]}
         </p>
       )}
@@ -118,25 +118,25 @@ export function LayarAkhir() {
         </div>
         {r.niat && (
           <div className="pt-2">
-            <p className="text-xs uppercase tracking-wide text-tinta/50">{LABEL_NIAT}</p>
+            <p className="text-xs uppercase tracking-wide text-tinta/70">{LABEL_NIAT}</p>
             <p className="mt-1 text-sm italic text-tinta/80">{r.niat}</p>
           </div>
         )}
       </div>
 
       <section className="mt-6">
-        <h2 className="text-xs uppercase tracking-wide text-tinta/50">
+        <h2 className="text-xs uppercase tracking-wide text-tinta/70">
           {JUDUL_JURNAL_PERMAINAN}
         </h2>
         {jurnal !== null &&
           (jurnal.length === 0 ? (
-            <p className="mt-1 text-sm text-tinta/60">{JURNAL_KOSONG}</p>
+            <p className="mt-1 text-sm text-tinta/70">{JURNAL_KOSONG}</p>
           ) : (
             <ul className="mt-2 space-y-3">
               {jurnal.map((e) => (
                 <li key={e.id} className="rounded-lg bg-teal-muda/40 p-3">
                   <p className="text-sm text-tinta/85">{e.kalimat}</p>
-                  <p className="mt-1 text-xs text-tinta/55">{e.tindakan}</p>
+                  <p className="mt-1 text-xs text-tinta/70">{e.tindakan}</p>
                 </li>
               ))}
             </ul>
@@ -149,9 +149,9 @@ export function LayarAkhir() {
         inilah yang membuat permainan tadi bisa dibuka lagi persis.
       */}
       <div data-benih className="mt-6 border-t border-teal-muda pt-3">
-        <p className="text-xs uppercase tracking-wide text-tinta/50">{LABEL_BENIH}</p>
+        <p className="text-xs uppercase tracking-wide text-tinta/70">{LABEL_BENIH}</p>
         <p className="mt-1 select-all break-all font-mono text-sm text-tinta/80">{r.seed}</p>
-        <p className="text-xs text-tinta/50">{cariProfesi(r.profesiId).nama}</p>
+        <p className="text-xs text-tinta/70">{cariProfesi(r.profesiId).nama}</p>
       </div>
 
       <div className="mt-6">
@@ -160,8 +160,8 @@ export function LayarAkhir() {
         </Tombol>
       </div>
 
-      <p className="mt-6 text-xs text-tinta/50">{CATATAN_ALAT_LATIHAN}</p>
-      <p className="mt-1 text-xs text-tinta/50">{DISCLAIMER}</p>
+      <p className="mt-6 text-xs text-tinta/70">{CATATAN_ALAT_LATIHAN}</p>
+      <p className="mt-1 text-xs text-tinta/70">{DISCLAIMER}</p>
     </main>
   );
 }

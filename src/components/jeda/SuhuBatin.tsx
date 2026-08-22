@@ -36,7 +36,7 @@ export function SuhuBatin({ fase, onCatat, disabled = false }: Props) {
         className="w-full accent-teal"
       />
 
-      <div className="flex justify-between text-xs text-tinta/50">
+      <div className="flex justify-between text-xs text-tinta/70">
         <span>{TANYA_SUHU.kiri}</span>
         <span>{TANYA_SUHU.kanan}</span>
       </div>

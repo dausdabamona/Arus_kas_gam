@@ -13,7 +13,7 @@ export function GarisArus({ keuangan }: Props) {
 
   return (
     <section aria-label="Perbandingan pendapatan pasif dan pengeluaran">
-      <div className="flex items-baseline justify-between text-xs uppercase tracking-wide text-tinta/50">
+      <div className="flex items-baseline justify-between text-xs uppercase tracking-wide text-tinta/70">
         <span>Pendapatan pasif</span>
         <span>Pengeluaran</span>
       </div>

@@ -32,7 +32,7 @@ export function LembarBawah({ judul, terbuka, onTutup, bisaDitutup = true, child
               type="button"
               onClick={onTutup}
               aria-label="Tutup"
-              className="rounded-lg px-3 text-2xl leading-none text-tinta/50"
+              className="rounded-lg px-3 text-2xl leading-none text-tinta/70"
             >
               ×
             </button>

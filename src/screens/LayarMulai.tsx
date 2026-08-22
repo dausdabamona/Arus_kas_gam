@@ -30,7 +30,7 @@ export function LayarMulai() {
   return (
     <main className="mx-auto max-w-md p-5">
       <h1 className="text-[32px] font-bold tracking-tight text-teal-tua">Arus</h1>
-      <p className="mt-1 text-sm text-tinta/60">Pilih titik berangkat.</p>
+      <p className="mt-1 text-sm text-tinta/70">Pilih titik berangkat.</p>
 
       {/*
         Penolakan permainan usang muncul di sini, di layar yang sudah punya
@@ -50,7 +50,7 @@ export function LayarMulai() {
         mendarat di kata yang salah.
       */}
       <div className="mt-6 rounded-xl border border-teal-muda bg-white p-4">
-        <label htmlFor="benih" className="text-xs uppercase tracking-wide text-tinta/50">
+        <label htmlFor="benih" className="text-xs uppercase tracking-wide text-tinta/70">
           {LABEL_BENIH}
         </label>
         {/*
@@ -81,7 +81,7 @@ export function LayarMulai() {
           </Tombol>
         </div>
         {sah ? (
-          <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_BENIH}</p>
+          <p className="mt-2 text-xs text-tinta/70">{PENJELASAN_BENIH}</p>
         ) : (
           <p role="status" className="mt-2 text-xs text-rugi">
             {PESAN_BENIH_KOSONG}
@@ -93,7 +93,7 @@ export function LayarMulai() {
         {PROFESI.map((p) => (
           <li key={p.id} className="rounded-xl border border-teal-muda bg-white p-4">
             <h2 className="font-semibold">{p.nama}</h2>
-            <p className="mt-1 text-sm tabular-nums text-tinta/60">
+            <p className="mt-1 text-sm tabular-nums text-tinta/70">
               Gaji {rupiah(p.kondisiAwal.gajiBersihBulanan)} · {p.kondisiAwal.liabilitas.length} utang
             </p>
             <div className="mt-3">
@@ -115,7 +115,7 @@ export function LayarMulai() {
         </Tombol>
       </div>
 
-      <p className="mt-6 text-xs text-tinta/50">
+      <p className="mt-6 text-xs text-tinta/70">
         Simulasi untuk latihan. Angka disederhanakan dan bukan saran investasi.
       </p>
     </main>

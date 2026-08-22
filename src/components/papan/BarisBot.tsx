@@ -28,7 +28,7 @@ export function BarisBot({ bot }: { bot: BotBerjalan[] }) {
           <div key={b.id} className="rounded-lg bg-white/60 px-3 py-2">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm font-semibold">{profil?.nama}</span>
-              <span className="text-xs tabular-nums text-tinta/50">
+              <span className="text-xs tabular-nums text-tinta/70">
                 {lolos
                   ? `Lolos di giliran ${b.lolosPadaGiliran}`
                   : b.bangkrutPadaGiliran !== null
@@ -43,7 +43,7 @@ export function BarisBot({ bot }: { bot: BotBerjalan[] }) {
               />
             </div>
             {b.komentar && (
-              <p className="mt-1.5 text-xs italic text-tinta/60">&ldquo;{b.komentar}&rdquo;</p>
+              <p className="mt-1.5 text-xs italic text-tinta/70">&ldquo;{b.komentar}&rdquo;</p>
             )}
           </div>
         );

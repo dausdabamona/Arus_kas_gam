@@ -28,7 +28,7 @@ import type { ReactNode } from 'react';
 export function PapanSkor({ judul, children }: { judul: string; children: ReactNode }) {
   return (
     <section data-papan className="min-w-0 rounded-xl border border-teal-muda bg-white p-4">
-      <h2 className="text-xs uppercase tracking-wide text-tinta/50">{judul}</h2>
+      <h2 className="text-xs uppercase tracking-wide text-tinta/70">{judul}</h2>
       <div className="mt-2 space-y-1">{children}</div>
     </section>
   );

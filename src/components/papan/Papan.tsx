@@ -18,8 +18,8 @@ const WARNA: Record<JenisPetak, string> = {
   PASAR: 'bg-amber/20 text-amber',
   BIAYA_TAK_TERDUGA: 'bg-rugi/15 text-rugi',
   GUNCANG: 'bg-rugi/15 text-rugi',
-  AMAL: 'bg-white text-tinta/60',
-  TAMBAH_ANAK: 'bg-white text-tinta/60',
+  AMAL: 'bg-white text-tinta/70',
+  TAMBAH_ANAK: 'bg-white text-tinta/70',
 };
 
 export function Papan({ posisi }: { posisi: number }) {

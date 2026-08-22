@@ -33,22 +33,22 @@ export function KartuPeluangTampil({ kartu, keuangan, onPutuskan, memproses = fa
 
         <dl className="space-y-1.5 text-sm tabular-nums">
           <div className="flex justify-between">
-            <dt className="text-tinta/60">Harga</dt>
+            <dt className="text-tinta/70">Harga</dt>
             <dd>{rupiah(kartu.harga)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-tinta/60">Uang muka</dt>
+            <dt className="text-tinta/70">Uang muka</dt>
             <dd>{rupiah(kartu.uangMuka)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-tinta/60">Arus kas per bulan</dt>
-            <dd className={kartu.arusKasBulanan > 0 ? 'text-untung' : 'text-tinta/60'}>
+            <dt className="text-tinta/70">Arus kas per bulan</dt>
+            <dd className={kartu.arusKasBulanan > 0 ? 'text-untung' : 'text-tinta/70'}>
               {rupiah(kartu.arusKasBulanan)}
             </dd>
           </div>
           {kartu.sisaUtang > 0 && (
             <div className="flex justify-between">
-              <dt className="text-tinta/60">Utang menempel</dt>
+              <dt className="text-tinta/70">Utang menempel</dt>
               <dd>{rupiah(kartu.sisaUtang)}</dd>
             </div>
           )}
@@ -77,10 +77,10 @@ export function KartuPeluangTampil({ kartu, keuangan, onPutuskan, memproses = fa
             aria-label="Ringkasan kredit"
             className="rounded-lg bg-teal-muda/40 px-3 py-2 text-sm tabular-nums"
           >
-            <span className="text-tinta/60">Cicilan </span>
+            <span className="text-tinta/70">Cicilan </span>
             <span className="font-semibold">{rupiah(kredit.cicilan)}</span>
-            <span className="text-tinta/45">/bln · </span>
-            <span className="text-tinta/60">Selisih </span>
+            <span className="text-tinta/70">/bln · </span>
+            <span className="text-tinta/70">Selisih </span>
             <span
               data-selisih
               className={`font-semibold ${kredit.selisih > 0 ? 'text-untung' : 'text-rugi'}`}
@@ -88,14 +88,14 @@ export function KartuPeluangTampil({ kartu, keuangan, onPutuskan, memproses = fa
               {kredit.selisih > 0 ? '+' : ''}
               {rupiah(kredit.selisih)}
             </span>
-            <span className="text-tinta/45">/bln · </span>
+            <span className="text-tinta/70">/bln · </span>
             {kredit.balikModal !== null && (
               <>
-                <span className="text-tinta/60">Balik modal </span>
+                <span className="text-tinta/70">Balik modal </span>
                 {/* Satu napas: "~3,2" dan "th" yang terpisah baris membuat
                     satuannya terbaca sebagai baris baru, bukan sebagai satuan. */}
                 <span className="whitespace-nowrap font-semibold">~{tahun(kredit.balikModal)} th</span>
-                <span className="text-tinta/45"> · </span>
+                <span className="text-tinta/70"> · </span>
               </>
             )}
             {/*
@@ -106,7 +106,7 @@ export function KartuPeluangTampil({ kartu, keuangan, onPutuskan, memproses = fa
               kedua paling mudah hilang: kapal berarus kas terbesar justru yang
               nilainya paling cepat turun.
             */}
-            <span className="whitespace-nowrap text-tinta/60">{ARAH_NILAI[kredit.nilai]}</span>
+            <span className="whitespace-nowrap text-tinta/70">{ARAH_NILAI[kredit.nilai]}</span>
           </div>
         )}
 

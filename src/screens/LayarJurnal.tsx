@@ -27,22 +27,22 @@ import type { EntriJurnal } from '../lib/db';
 function Entri({ entri }: { entri: EntriJurnal }) {
   return (
     <li className="rounded-xl border border-teal-muda bg-white p-4">
-      <p className="text-xs uppercase tracking-wide text-tinta/50">
+      <p className="text-xs uppercase tracking-wide text-tinta/70">
         {NAMA_KEBUTUHAN[entri.kebutuhan]}
       </p>
       <p className="mt-2 text-base leading-relaxed text-tinta">{entri.kalimat}</p>
-      <p className="mt-1 text-sm text-tinta/60">{entri.tindakan}</p>
+      <p className="mt-1 text-sm text-tinta/70">{entri.tindakan}</p>
 
       <div className="mt-3 flex gap-3 border-t border-teal-muda pt-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-wide text-tinta/50">{NASKAH_TUAI.hasilLuar}</p>
+          <p className="text-xs uppercase tracking-wide text-tinta/70">{NASKAH_TUAI.hasilLuar}</p>
           <p className="mt-0.5 text-sm font-semibold">
             {/* Nol berarti tak terukur, bukan impas. Aturan yang sama dengan Layar Panen. */}
             {entri.hasilLuar === 0 ? NASKAH_TUAI.takTerukur : <Uang nilai={entri.hasilLuar} berwarna />}
           </p>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-wide text-tinta/50">{NASKAH_TUAI.hasilDalam}</p>
+          <p className="text-xs uppercase tracking-wide text-tinta/70">{NASKAH_TUAI.hasilDalam}</p>
           <p
             className={`mt-0.5 text-sm font-semibold ${
               // amber, bukan amber-tua: palet §13.1 cuma punya amber dan
@@ -67,7 +67,7 @@ export function LayarJurnal({ onTutup }: { onTutup: () => void }) {
   return (
     <main className="mx-auto max-w-md p-5">
       <h1 className="text-[28px] font-bold tracking-tight text-teal-tua">{JUDUL_JURNAL}</h1>
-      <p className="mt-1 text-sm text-tinta/60">{PENJELASAN_JURNAL}</p>
+      <p className="mt-1 text-sm text-tinta/70">{PENJELASAN_JURNAL}</p>
 
       {/*
         Satu pola, dihitung dan tidak ditafsirkan (§12). Ia berdiri sendiri di
@@ -84,7 +84,7 @@ export function LayarJurnal({ onTutup }: { onTutup: () => void }) {
 
       {jurnal !== null &&
         (jurnal.length === 0 ? (
-          <p className="mt-6 text-sm text-tinta/60">{JURNAL_KOSONG_SEMUA}</p>
+          <p className="mt-6 text-sm text-tinta/70">{JURNAL_KOSONG_SEMUA}</p>
         ) : (
           <ul className="mt-5 space-y-3">
             {jurnal.map((e) => (
@@ -102,14 +102,14 @@ export function LayarJurnal({ onTutup }: { onTutup: () => void }) {
         <Tombol jenis="kedua" lebarPenuh onClick={() => void unduhJurnalMarkdown()}>
           {LABEL_SALIN_TEKS}
         </Tombol>
-        <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_SALIN_TEKS}</p>
+        <p className="mt-2 text-xs text-tinta/70">{PENJELASAN_SALIN_TEKS}</p>
       </div>
 
       <div className="mt-4">
         <Tombol jenis="kedua" lebarPenuh onClick={() => void unduhCadanganJurnal()}>
           {LABEL_EKSPOR}
         </Tombol>
-        <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_EKSPOR}</p>
+        <p className="mt-2 text-xs text-tinta/70">{PENJELASAN_EKSPOR}</p>
       </div>
 
       <div className="mt-4">

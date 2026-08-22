@@ -25,7 +25,7 @@ export function PitaKebiasaan({ kebiasaan }: Props) {
 
   return (
     <section aria-label={JUDUL_PITA}>
-      <h2 className="text-xs uppercase tracking-wide text-tinta/50">{JUDUL_PITA}</h2>
+      <h2 className="text-xs uppercase tracking-wide text-tinta/70">{JUDUL_PITA}</h2>
       <ul className="mt-2 space-y-2">
         {kebiasaan.map((berjalan) => {
           const kartu = cariKartuKebiasaan(berjalan.id);
@@ -47,7 +47,7 @@ export function PitaKebiasaan({ kebiasaan }: Props) {
                 >
                   {kartu.nama}
                 </p>
-                <p className="shrink-0 text-xs tabular-nums text-tinta/60">
+                <p className="shrink-0 text-xs tabular-nums text-tinta/70">
                   {berjalan.lepas
                     ? LABEL_SUDAH_LEPAS
                     : labelKemajuan(berjalan.kemajuan, kartu.syaratLepas.kali)}

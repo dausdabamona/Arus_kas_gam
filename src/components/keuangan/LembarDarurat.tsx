@@ -70,7 +70,7 @@ function HitunganJual({
       </div>
 
       <div className="rounded-xl bg-teal-muda/40 p-3">
-        <p className="text-xs uppercase tracking-wide text-tinta/50">Tiap bulan sesudahnya</p>
+        <p className="text-xs uppercase tracking-wide text-tinta/70">Tiap bulan sesudahnya</p>
         {/*
           Dua angka itu ADA gunanya justru karena berlawanan arah. Kalau
           keduanya nol — aset bebas utang yang juga tak berarus kas, seperti

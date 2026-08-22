@@ -34,7 +34,7 @@ export function LembarPelunasan({ liabilitasId, onTutup }: Props) {
     <LembarBawah judul={utang.nama} terbuka onTutup={onTutup}>
       <div className="space-y-4">
         <div>
-          <div className="flex items-baseline justify-between text-xs uppercase tracking-wide text-tinta/50">
+          <div className="flex items-baseline justify-between text-xs uppercase tracking-wide text-tinta/70">
             <span>Sisa pokok</span>
             <span>Pokok awal</span>
           </div>
@@ -46,9 +46,9 @@ export function LembarPelunasan({ liabilitasId, onTutup }: Props) {
           </div>
           <div className="mt-2 flex items-baseline justify-between text-sm tabular-nums">
             <span>{rupiah(utang.sisaUtang)}</span>
-            <span className="text-tinta/50">{rupiah(utang.pokokAwal)}</span>
+            <span className="text-tinta/70">{rupiah(utang.pokokAwal)}</span>
           </div>
-          <p className="mt-1 text-xs tabular-nums text-tinta/50">{progres}% terlunasi</p>
+          <p className="mt-1 text-xs tabular-nums text-tinta/70">{progres}% terlunasi</p>
         </div>
 
         <div className="flex items-baseline justify-between">

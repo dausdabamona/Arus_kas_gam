@@ -136,7 +136,7 @@ export function JedaBatin({ judul, kebutuhan, onSelesai }: Props) {
             }
           >
             <p className="text-lg leading-relaxed text-tinta">{NASKAH_TENANG[nomorTenang]}</p>
-            <p className="text-xs text-tinta/40">{PETUNJUK_TENANG}</p>
+            <p className="text-xs text-tinta/70">{PETUNJUK_TENANG}</p>
           </button>
         );
 
@@ -197,14 +197,14 @@ export function JedaBatin({ judul, kebutuhan, onSelesai }: Props) {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-tinta/40">{LABEL_PANCINGAN}</p>
+            <p className="text-xs text-tinta/70">{LABEL_PANCINGAN}</p>
           </div>
         );
 
       case 'lepas':
         return (
           <div className="space-y-4">
-            <p className="text-sm text-tinta/60">{NASKAH_PELEPASAN.pembuka}</p>
+            <p className="text-sm text-tinta/70">{NASKAH_PELEPASAN.pembuka}</p>
             <p className="text-lg text-tinta">{NASKAH_PELEPASAN.tiga[nomorLepas]}</p>
             {jumlahTidak >= RAGU_SETELAH && (
               <p className="text-base text-tinta/70">{NASKAH_PELEPASAN.bilaRagu}</p>
@@ -217,7 +217,7 @@ export function JedaBatin({ judul, kebutuhan, onSelesai }: Props) {
                 {LABEL_TOMBOL.tidak}
               </Tombol>
             </div>
-            <p className="text-xs text-tinta/40">{NASKAH_PELEPASAN.catatan}</p>
+            <p className="text-xs text-tinta/70">{NASKAH_PELEPASAN.catatan}</p>
           </div>
         );
 
@@ -295,7 +295,7 @@ export function JedaBatin({ judul, kebutuhan, onSelesai }: Props) {
               onChange={(e) => setTindakan(e.target.value)}
               className="w-full rounded-xl border border-tinta/15 bg-ivory p-3 text-base text-tinta"
             />
-            <p className="text-xs text-tinta/40">{NASKAH_TANAM.sekali}</p>
+            <p className="text-xs text-tinta/70">{NASKAH_TANAM.sekali}</p>
             <Tombol onClick={() => void tanam()} disabled={memproses} lebarPenuh>
               {LABEL_TOMBOL.simpan}
             </Tombol>
