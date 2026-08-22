@@ -1,5 +1,5 @@
 import { prngUntuk, buatPrng } from './prng';
-import { lemparDadu, bilanganAcak, ambilSatu, kocok } from './acak';
+import { lemparDadu, bilanganAcak, ambilSatu } from './acak';
 import { petakDi, posisiSetelah, hitungGajianDilewati } from './papan';
 import {
   arusKasBulanan,
@@ -22,9 +22,12 @@ import { komentarUntuk, momenDari } from './komentar';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
 import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { KARTU_GUNCANG, cariKartuGuncang } from '../data/kartu-guncang';
-import { KARTU_KEBIASAAN } from '../data/kartu-kebiasaan';
-import { ringkasKemerdekaan } from './kemerdekaan';
-import { refleksMemaksa, majukanPelepasan, terapkanBanding } from './kebiasaan';
+import {
+  refleksMemaksa,
+  majukanPelepasan,
+  terapkanBanding,
+  kebiasaanTerbawa,
+} from './kebiasaan';
 import { PROFIL_BOT } from '../data/bot';
 import { cariProfesi } from '../data/profesi';
 import type { Kejadian } from '../types/kejadian';
@@ -732,18 +735,9 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
       if (state.niat === null) return state;
       if (!lolosTahapSatu(hitungLaporan(state.keuangan))) return state;
 
-      // Kartu dikocok, bukan dipilih menurut kelemahan pemain. Memilih kartu
-      // "yang paling relevan" berarti mesin menyimpulkan sesuatu tentang
-      // orangnya dari angka — dan §7.2 menempatkan kartu ini sebagai keadaan
-      // awal yang jujur, bukan diagnosis. Kocokan murni cukup untuk fase ini.
-      const jumlah = ringkasKemerdekaan(state.skor).kartuKebiasaan;
-      const terpilih = kocok(buatPrng(`${state.seed}#kebiasaan`), KARTU_KEBIASAAN).slice(0, jumlah);
-
-      return {
-        ...state,
-        tahap: 'luas',
-        kebiasaan: terpilih.map((k) => ({ id: k.id, kemajuan: 0, lepas: false, lawanUnggul: false })),
-      };
+      // Perhitungannya tinggal di kebiasaan.ts supaya layar Gerbang membaca
+      // daftar yang sama persis dengan yang dipasang di sini.
+      return { ...state, tahap: 'luas', kebiasaan: kebiasaanTerbawa(state.seed, state.skor) };
     }
 
     case 'LUNASI':

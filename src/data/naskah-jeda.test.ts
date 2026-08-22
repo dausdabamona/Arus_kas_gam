@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import * as NASKAH from './naskah-jeda';
+import * as NASKAH_JEDA from './naskah-jeda';
+import * as NASKAH_GERBANG from './naskah-gerbang';
 import { NASKAH_TENANG, TANYA_TEMU, NASKAH_PELEPASAN, LABEL_PANCINGAN, JENIS_TEMUAN, LOKASI_TUBUH, NASKAH_TANAM } from './naskah-jeda';
 
 /**
@@ -15,12 +16,14 @@ function kumpulkan(nilai: unknown, keluar: string[] = []): string[] {
   return keluar;
 }
 
-const semuaKalimat = kumpulkan(NASKAH);
+// Penjaga nada menjangkau SELURUH naskah pemandu, bukan hanya naskah jeda:
+// naskah Gerbang tunduk pada aturan yang sama, dan lebih rawan lagi.
+const semuaKalimat = [...kumpulkan(NASKAH_JEDA), ...kumpulkan(NASKAH_GERBANG)];
 
 /** Kalimat yang menghakimi, memuji, atau menyuruh. Semuanya haram di naskah pemandu. */
 const KATA_TERLARANG = ['seharusnya', 'bagus', 'hebat', 'jangan khawatir'];
 
-describe('naskah jeda batin', () => {
+describe('naskah pemandu', () => {
   it('menelusuri seluruh kalimat yang dibaca pemain', () => {
     expect(semuaKalimat.length).toBeGreaterThan(35);
     expect(semuaKalimat.every((s) => s.length > 0)).toBe(true);

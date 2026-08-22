@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import * as NASKAH from '../../data/naskah-jeda';
+import * as NASKAH_JEDA from '../../data/naskah-jeda';
+import * as NASKAH_GERBANG from '../../data/naskah-gerbang';
 
 const KOMPONEN = [
   'src/components/jeda/JedaBatin.tsx',
   'src/components/jeda/SuhuBatin.tsx',
   'src/components/jeda/LayarPanen.tsx',
   'src/components/papan/KartuGuncangTampil.tsx',
+  'src/screens/LayarGerbang.tsx',
 ];
 
 /** Semua kalimat yang benar-benar ada di naskah, untuk dibandingkan. */
@@ -17,7 +19,7 @@ function kumpulkan(nilai: unknown, keluar: string[] = []): string[] {
   else if (nilai && typeof nilai === 'object') for (const x of Object.values(nilai)) kumpulkan(x, keluar);
   return keluar;
 }
-const NASKAH_SAH = kumpulkan(NASKAH);
+const NASKAH_SAH = [...kumpulkan(NASKAH_JEDA), ...kumpulkan(NASKAH_GERBANG)];
 
 /**
  * Teks yang sampai ke mata pemain: isi JSX di antara tag, dan isi string

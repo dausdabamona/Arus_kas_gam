@@ -1,5 +1,8 @@
 import { kekayaanBersih } from './keuangan';
-import { cariKartuKebiasaan } from '../data/kartu-kebiasaan';
+import { kocok } from './acak';
+import { buatPrng } from './prng';
+import { ringkasKemerdekaan } from './kemerdekaan';
+import { cariKartuKebiasaan, KARTU_KEBIASAAN } from '../data/kartu-kebiasaan';
 import type { StatePermainan, KebiasaanBerjalan } from '../types/state';
 
 /**
@@ -11,6 +14,23 @@ import type { StatePermainan, KebiasaanBerjalan } from '../types/state';
  * di situlah pemain melatih pelepasannya. Yang mengunci tanpa jalan keluar
  * adalah denda, dan §7.2 melarangnya.
  */
+
+/**
+ * Kartu yang akan terbawa ke Lingkar Luas. Satu sumber untuk dua pemakai:
+ * layar Gerbang menampilkannya SEBELUM tombol Masuk ditekan, reducer
+ * memasangnya saat ditekan. Kalau keduanya menghitung sendiri-sendiri, layar
+ * bisa menjanjikan kartu yang berbeda dari yang benar-benar dibawa.
+ *
+ * Dikocok murni, bukan dipilih menurut kelemahan pemain: memilih dari skor
+ * berarti mesin mendiagnosis orang dari angka, dan §7.2 menempatkan kartu ini
+ * sebagai keadaan awal jujur, bukan diagnosis.
+ */
+export function kebiasaanTerbawa(seed: string, skor: StatePermainan['skor']): KebiasaanBerjalan[] {
+  const jumlah = ringkasKemerdekaan(skor).kartuKebiasaan;
+  return kocok(buatPrng(`${seed}#kebiasaan`), KARTU_KEBIASAAN)
+    .slice(0, jumlah)
+    .map((k) => ({ id: k.id, kemajuan: 0, lepas: false, lawanUnggul: false }));
+}
 
 /** Peristiwa yang bisa memajukan syarat lepas. */
 export type PeristiwaPelepasan = 'jeda-pasar-turun' | 'tolak-tenang' | 'jeda-pengakuan';
