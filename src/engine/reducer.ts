@@ -11,6 +11,7 @@ import {
   nilaiUlangAsetKartu,
   perluTindakanDarurat,
   tuasTersedia,
+  ekuitasAset,
   berhemat,
   ambilPinjamanDarurat,
   sisaPlafonPinjaman,
@@ -356,6 +357,9 @@ function ambilKartu(keuangan: KondisiKeuangan, kartu: KartuPeluang): KondisiKeua
         sisaUtang: kartu.sisaUtang,
         cicilanBulanan: kartu.cicilanBulanan,
         pokokAwal: kartu.sisaUtang,
+        // Tautan eksplisit ke aset yang baru dibuat di atas — bukan
+        // disimpulkan dari pola nama idnya.
+        asetId: kunci,
       },
     ],
   };
@@ -774,7 +778,15 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         case 'hemat':
           return { ...state, keuangan: berhemat(state.keuangan) };
         case 'jual': {
-          const asetId = kejadian.isi.asetId ?? state.keuangan.aset[0]?.id;
+          // Aset bawaan HARUS yang ekuitasnya positif. `tuasTersedia` menyatakan
+          // tuas ini ada karena SEBAGIAN aset bisa dijual; kalau mesin lalu
+          // selalu mencoba aset[0] yang kebetulan terbenam, penjualannya
+          // ditolak, state tidak berubah, dan pemain menggantung di krisis yang
+          // tuasnya terlihat tersedia. Terbukti sebagai kemacetan 1000 giliran
+          // pada satu seed sebelum syarat ini dipasang.
+          const asetId =
+            kejadian.isi.asetId ??
+            state.keuangan.aset.find((a) => ekuitasAset(state.keuangan, a.id) > 0)?.id;
           return asetId ? { ...state, keuangan: jualAset(state.keuangan, asetId) } : state;
         }
         case 'pinjam': {

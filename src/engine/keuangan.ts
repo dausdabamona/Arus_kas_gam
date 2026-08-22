@@ -43,6 +43,18 @@ export interface Liabilitas {
    * pelunasan (§5.3: "sisa pokok terhadap pokok awal").
    */
   pokokAwal: number;
+  /**
+   * Aset tempat utang ini melekat — KPR yang melekat pada rukonya, cicilan
+   * yang melekat pada kosnya. Kosong berarti beban murni: utang bawaan
+   * profesi dan pinjaman darurat tidak punya barang yang bisa dijual untuk
+   * menutupnya.
+   *
+   * Tautannya eksplisit, bukan disimpulkan dari pola nama id. Pola nama
+   * ("utang-" + id aset) pernah dipakai, dan tautan yang cuma kebetulan string
+   * putus tanpa suara begitu penamaannya berubah — meninggalkan cicilan untuk
+   * barang yang sudah tidak dimiliki.
+   */
+  asetId?: string;
 }
 
 /** Seluruh keadaan keuangan pemain pada satu titik waktu. */
@@ -223,7 +235,9 @@ export function berhemat(kondisi: KondisiKeuangan): KondisiKeuangan {
  */
 export function tuasTersedia(kondisi: KondisiKeuangan): Array<'jual' | 'pinjam' | 'hemat'> {
   const tuas: Array<'jual' | 'pinjam' | 'hemat'> = [];
-  if (kondisi.aset.length > 0) tuas.push('jual');
+  // Bukan "punya aset", tapi "punya aset yang kalau dijual menghasilkan kas".
+  // Aset terbenam (§8.3: motor, kapal, gerobak) tidak menolong siapa pun.
+  if (kondisi.aset.some((a) => ekuitasAset(kondisi, a.id) > 0)) tuas.push('jual');
   if (sisaPlafonPinjaman(kondisi) > 0) tuas.push('pinjam');
   if (bisaBerhemat(kondisi)) tuas.push('hemat');
   return tuas;
@@ -268,16 +282,33 @@ export function lunasiPinjaman(
 }
 
 /**
- * Menjual satu aset. Tanpa harga jual, aset dilepas seharga nilainya
- * sekarang; dengan harga jual, pasar yang menentukan.
+ * Menjual satu aset, DISELESAIKAN NETO: hasil jualnya melunasi utang yang
+ * melekat lebih dulu, dan pemain menerima ekuitasnya. Aset dan seluruh utang
+ * melekatnya dibuang bersama.
+ *
+ * Sebelumnya aset dibuang sendirian dan cicilannya tertinggal — utang hantu
+ * untuk barang yang tak lagi dimiliki. Simulasi dengan urutan tuas panik
+ * (perilaku Pak Rudi §11) menciptakan 51 utang yatim dalam 300 giliran x 5 seed.
+ *
+ * Ekuitas nol atau minus BUKAN tuas: menjual rugi tidak menghasilkan kas, dan
+ * membiarkannya "berhasil" membuat pemain menggantung — menekan tuas yang tidak
+ * mengubah apa pun, berulang kali, tanpa pernah sampai bangkrut yang sah (§5.3).
+ *
+ * `hargaJual` menggantikan nilai buku bila pasar yang menentukan harganya.
  */
 export function jualAset(k: KondisiKeuangan, asetId: string, hargaJual?: number): KondisiKeuangan {
   const aset = k.aset.find((a) => a.id === asetId);
   if (!aset) throw new Error(`Aset tidak ditemukan: ${asetId}`);
+
+  const melekat = utangMelekat(k, asetId);
+  const neto = (hargaJual ?? aset.nilai) - jumlahkan(melekat.map((l) => l.sisaUtang));
+  if (neto <= 0) return k;
+
   return {
     ...k,
-    saldoKas: k.saldoKas + (hargaJual ?? aset.nilai),
+    saldoKas: k.saldoKas + neto,
     aset: k.aset.filter((a) => a.id !== asetId),
+    liabilitas: k.liabilitas.filter((l) => l.asetId !== asetId),
   };
 }
 
@@ -286,6 +317,22 @@ export function jualAset(k: KondisiKeuangan, asetId: string, hargaJual?: number)
  * dibayar), satu persis saat lunas penuh. Murni untuk tampilan (§5.3) —
  * tidak pernah dipakai untuk mengubah aritmetika lain.
  */
+/** Utang yang melekat pada satu aset. Kosong untuk aset yang sudah bebas. */
+export function utangMelekat(k: KondisiKeuangan, asetId: string): Liabilitas[] {
+  return k.liabilitas.filter((l) => l.asetId === asetId);
+}
+
+/**
+ * Ekuitas satu aset: nilainya sekarang dikurangi utang yang masih melekat.
+ * Inilah yang benar-benar diterima pemain bila asetnya dijual — dan ia bisa
+ * negatif untuk aset depresiasi (§8.3), yang berarti barang itu bukan tuas.
+ */
+export function ekuitasAset(k: KondisiKeuangan, asetId: string): number {
+  const aset = k.aset.find((a) => a.id === asetId);
+  if (!aset) return 0;
+  return aset.nilai - jumlahkan(utangMelekat(k, asetId).map((l) => l.sisaUtang));
+}
+
 export function progresPelunasan(l: Liabilitas): number {
   if (l.pokokAwal === 0) return 1;
   return (l.pokokAwal - l.sisaUtang) / l.pokokAwal;

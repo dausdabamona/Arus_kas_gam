@@ -1,5 +1,5 @@
 import { usePermainan } from '../../hooks/use-permainan';
-import { tuasTersedia, sisaPlafonPinjaman, POTONGAN_BERHEMAT } from '../../engine/keuangan';
+import { ekuitasAset, tuasTersedia, sisaPlafonPinjaman, POTONGAN_BERHEMAT } from '../../engine/keuangan';
 import { rupiah } from '../../lib/format';
 import { LembarBawah } from '../ui/LembarBawah';
 import { Tombol } from '../ui/Tombol';
@@ -18,7 +18,10 @@ export function LembarDarurat() {
 
   const tersedia = tuasTersedia(state.keuangan);
   const potongan = Math.round(state.keuangan.pengeluaranTetap * POTONGAN_BERHEMAT);
-  const aset = state.keuangan.aset[0];
+  // Aset pertama yang BISA dijual, bukan aset pertama. Aset terbenam (§8.3)
+  // tidak menghasilkan kas, dan menawarkannya berarti menawarkan tombol yang
+  // tidak mengubah apa pun. Sementara sampai Tugas 6 memberi hitungan penuh.
+  const aset = state.keuangan.aset.find((a) => ekuitasAset(state.keuangan, a.id) > 0);
 
   const pilih = (tuas: 'jual' | 'pinjam' | 'hemat', asetId?: string) =>
     void kirim({ tipe: 'TINDAKAN_DARURAT', isi: { tuas, asetId } });
@@ -49,7 +52,7 @@ export function LembarDarurat() {
           <div className="flex flex-col gap-2">
             {tersedia.includes('jual') && aset && (
               <Tombol jenis="kedua" lebarPenuh disabled={memproses} onClick={() => pilih('jual', aset.id)}>
-                Jual {aset.nama} — {rupiah(aset.nilai)}
+                Jual {aset.nama} — {rupiah(ekuitasAset(state.keuangan, aset.id))}
               </Tombol>
             )}
             {tersedia.includes('pinjam') && (
