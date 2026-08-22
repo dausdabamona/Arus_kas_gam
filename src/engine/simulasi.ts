@@ -59,6 +59,17 @@ export interface HasilSimulasi {
    * KAPAN tekanan pertama tiba — dan di situlah pemain masih telanjang.
    */
   giliranKrisisPertama: number;
+  /** Giliran saat pemain masuk Lingkar Luas. Null bila tidak pernah sampai. */
+  masukLuasPadaGiliran: number | null;
+  /** Kartu kebiasaan yang terbawa ke tahap dua. */
+  kebiasaanDibawa: string[];
+  kartuKebiasaanDibawa: number;
+  /**
+   * Berapa kebiasaan yang berhasil dilepas. Pelari tidak pernah mengambil Jeda,
+   * jadi angka ini SELALU nol — dan itu memang yang diukur: berat refleks yang
+   * tidak pernah dilatih.
+   */
+  kebiasaanTerlepas: number;
   state: StatePermainan;
 }
 
@@ -81,11 +92,32 @@ export function jalankanSimulasi(opsi: {
   profesiId: string;
   kebijakan: Kebijakan;
   maksGiliran: number;
+  /**
+   * Bila true, pelari tidak berhenti saat lolos: ia menulis niat, masuk
+   * Lingkar Luas, lalu terus berjalan sampai batas giliran. Bawaan false,
+   * sehingga seluruh pengukuran Invarian 1-6 tetap persis seperti sebelumnya.
+   */
+  lanjutKeLuas?: boolean;
+  /**
+   * Memaksa kartu kebiasaan tertentu saat masuk Lingkar Luas, menggantikan
+   * kocokan. Ini ALAT UKUR, bukan aturan permainan: tanpa kendali, "pemain
+   * tanpa refleks-panik" selalu berarti "pemain dengan refleks-banding DAN
+   * refleks-kejar" — sebab pelari selalu berskor 0/0 dan karenanya selalu
+   * membawa dua dari tiga kartu. Perbandingan yang terkonfound seperti itu
+   * mengukur pasangan kartunya, bukan kartu yang ditanyakan.
+   */
+  paksaKebiasaan?: string[];
 }): HasilSimulasi {
-  // Bot dimatikan di jalur simulasi: simulator mengukur ekonomi pemain, dan
-  // menjalankan tiga dunia tambahan tiap giliran hanya memperlambat tanpa
-  // menambah apa pun yang diukur. Invarian isolasi menjamin hasilnya sama.
-  let state: StatePermainan = { ...stateAwal(opsi.seed, opsi.profesiId), bot: [] };
+  // Bot dimatikan di jalur simulasi biasa: simulator mengukur ekonomi pemain,
+  // dan menjalankan tiga dunia tambahan tiap giliran hanya memperlambat.
+  // Invarian isolasi menjamin hasilnya sama.
+  //
+  // KECUALI saat mengukur Lingkar Luas. refleks-banding hanya terpicu oleh bot
+  // yang melampaui pemain, jadi mengukurnya dengan bot mati membuat beban satu
+  // dari tiga kartu sistematis lebih ringan dari kenyataan — dan Fase 8 akan
+  // menyetel ambangnya dari data yang kehilangan sepertiga sumbernya.
+  const awal = stateAwal(opsi.seed, opsi.profesiId);
+  let state: StatePermainan = opsi.lanjutKeLuas ? awal : { ...awal, bot: [] };
   let t = 1;
   let puncakPengeluaran = 0;
   let puncakUtang = 0;
@@ -95,6 +127,7 @@ export function jalankanSimulasi(opsi: {
   let jumlahKrisis = 0;
   let jumlahTuasTerpakai = 0;
   let giliranKrisisPertama = Infinity;
+  let masukLuasPadaGiliran: number | null = null;
 
   const catat = () => {
     puncakPengeluaran = Math.max(puncakPengeluaran, hitungLaporan(state.keuangan).totalPengeluaran);
@@ -140,6 +173,10 @@ export function jalankanSimulasi(opsi: {
     // dari Invarian 6, dan nol akan membuatnya lulus dengan angka terbaik.
     giliranPerKrisis: jumlahKrisis === 0 ? Infinity : giliranDijalani / jumlahKrisis,
     giliranKrisisPertama,
+    masukLuasPadaGiliran,
+    kebiasaanDibawa: state.kebiasaan.map((k) => k.id),
+    kartuKebiasaanDibawa: state.kebiasaan.length,
+    kebiasaanTerlepas: state.kebiasaan.filter((k) => k.lepas).length,
   });
 
   let hargaGiliranLalu: Record<string, number> = { ...state.hargaPasar };
@@ -212,13 +249,32 @@ export function jalankanSimulasi(opsi: {
       return { giliran, akhir: 'bangkrut', ...rerata(), puncakPengeluaran, puncakUtang, state };
     }
     if (lolosTahapSatu(hitungLaporan(state.keuangan))) {
-      return { giliran, akhir: 'lolos', ...rerata(), puncakPengeluaran, puncakUtang, state };
+      if (!opsi.lanjutKeLuas) {
+        return { giliran, akhir: 'lolos', ...rerata(), puncakPengeluaran, puncakUtang, state };
+      }
+      if (state.tahap === 'harian') {
+        // Niat diisi teks tetap: pelari mengukur keuangan, bukan kalimat.
+        kirim({ tipe: 'GERBANG_NIAT', isi: { niat: 'Berhenti mengejar.' } });
+        kirim({ tipe: 'MASUK_LINGKAR_LUAS', isi: {} });
+        if (opsi.paksaKebiasaan) {
+          state = {
+            ...state,
+            kebiasaan: opsi.paksaKebiasaan.map((id) => ({
+              id,
+              kemajuan: 0,
+              lepas: false,
+              lawanUnggul: false,
+            })),
+          };
+        }
+        masukLuasPadaGiliran = giliran + 1;
+      }
     }
   }
 
   return {
     giliran: opsi.maksGiliran,
-    akhir: 'batas-giliran',
+    akhir: masukLuasPadaGiliran === null ? 'batas-giliran' : 'lolos',
     ...rerata(),
     puncakPengeluaran,
     puncakUtang,

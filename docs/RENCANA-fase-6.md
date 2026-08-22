@@ -82,6 +82,13 @@ Sambungan di reducer:
 Pelari otomatis masuk Lingkar Luas saat lolos, mencatat `masukLuasPadaGiliran`,
 `kartuKebiasaanDibawa`, `kebiasaanTerlepas`.
 
+**Bot MENYALA untuk pengukuran Lingkar Luas.** Simulator lain mematikan bot
+(`bot: []`), tetapi refleks-banding hanya terpicu oleh bot yang melampaui
+pemain — mengukurnya dengan bot mati membuat beban satu dari tiga kartu
+sistematis lebih ringan dari kenyataan, dan Fase 8 akan menyetel ambangnya dari
+data yang kekurangan sepertiga sumbernya. Batas bawah yang jujur tetap kalah
+dari angka penuh yang bisa disetel.
+
 ## Tugas 6: Layar Gerbang Niat
 
 `src/data/naskah-gerbang.ts`, `src/screens/LayarGerbang.tsx`. Teks penjelasan

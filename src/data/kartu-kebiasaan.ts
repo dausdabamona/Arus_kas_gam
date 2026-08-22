@@ -12,7 +12,15 @@ export const KARTU_KEBIASAAN: readonly KartuKebiasaan[] = [
     nama: 'Refleks lepas saat turun',
     keterangan: 'Saat harga jatuh, tangan bergerak menjual sebelum kepala sempat menimbang.',
     caraLepas: 'Ambil Jeda dua kali saat pasar sedang turun. Setelah itu refleks ini reda.',
-    efek: { jenis: 'panik', ambangTurun: 0.2 },
+    /**
+     * 0,15 — BUKAN 0,20 seperti tertulis di §7.2. Simulator menyapu 20.000
+     * giliran: penurunan satu giliran terdalam yang MUNGKIN terjadi adalah
+     * 17,70% (saham individual, volatilitas 18%). Ambang 20% membuat refleks
+     * ini mustahil menyala seumur permainan — label tanpa efek, persis yang
+     * Fase 6 larang. 0,15 juga menyatukan angka: §11 dan `kebijakan.ts`
+     * sudah memakai 15% untuk panik Pak Rudi.
+     */
+    efek: { jenis: 'panik', ambangTurun: 0.15 },
     syaratLepas: { jenis: 'lolos-jeda-pasar-turun', kali: 2 },
   },
   {

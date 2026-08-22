@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { jalankanSimulasi } from './simulasi';
 import { reduce, stateAwal } from './reducer';
+import { putuskanKartu } from './kebijakan';
+import { cariKartu } from '../data/kartu-peluang';
+import type { StatePermainan } from '../types/state';
 import { KARTU_GUNCANG } from '../data/kartu-guncang';
 import { PROFESI } from '../data/profesi';
-import { arusKasBulanan, pendapatanPasif } from './keuangan';
+import { arusKasBulanan, pendapatanPasif, kekayaanBersih } from './keuangan';
 import { MAKS_ANAK } from './reducer';
 
 const SEED = ['a1', 'b2', 'c3', 'd4', 'e5'];
@@ -257,5 +260,96 @@ describe('Invarian 6 §5.4 — krisis benar-benar terjadi', () => {
     expect(lolos.length).toBeGreaterThan(0);
     const nisbah = lolos.map((h) => h.state.keuangan.saldoKas / h.state.skalaGuncangan);
     expect(median(nisbah)).toBeGreaterThan(20);
+  });
+});
+
+
+describe('Lingkar Luas', () => {
+  const SEED_LUAS = Array.from({ length: 20 }, (_, i) => `L${i}`);
+
+  const median = (angka: number[]) => {
+    const urut = [...angka].sort((a, b) => a - b);
+    return urut[Math.floor(urut.length / 2)];
+  };
+
+  const jalankan = (profesiId: string, paksaKebiasaan?: string[]) =>
+    SEED_LUAS.map((seed) =>
+      jalankanSimulasi({
+        seed,
+        profesiId,
+        kebijakan: 'pasar-saham',
+        maksGiliran: 300,
+        lanjutKeLuas: true,
+        paksaKebiasaan,
+      }),
+    );
+
+  it('pemain yang lolos benar-benar sampai ke tahap dua', () => {
+    const masuk = jalankan('asn-3b').filter((h) => h.masukLuasPadaGiliran !== null);
+    expect(masuk.length).toBeGreaterThan(SEED_LUAS.length / 2);
+    expect(masuk.every((h) => h.state.tahap === 'luas')).toBe(true);
+    expect(masuk.every((h) => h.state.niat !== null)).toBe(true);
+  });
+
+  it('membawa kartu kebiasaan — pelari tak pernah berjeda, jadi selalu belum teruji', () => {
+    const masuk = jalankan('asn-3b').filter((h) => h.masukLuasPadaGiliran !== null);
+    expect(masuk.every((h) => h.kartuKebiasaanDibawa === 2)).toBe(true);
+  });
+
+  it('tanpa jeda, kebiasaan tak pernah lepas — beratnya nyata', () => {
+    for (const h of jalankan('asn-3b')) {
+      if (h.kartuKebiasaanDibawa > 0) expect(h.kebiasaanTerlepas).toBe(0);
+    }
+  });
+
+  /**
+   * PENGUKURAN TERKENDALI, BUKAN PENGAMATAN. Pelari selalu berskor 0/0 dan
+   * karenanya selalu membawa DUA dari tiga kartu, sehingga "pemain tanpa
+   * refleks-banding" selalu berarti "pemain dengan refleks-panik DAN
+   * refleks-kejar". Membandingkan begitu mengukur pasangan kartunya, bukan
+   * kartu yang ditanyakan — jadi kartunya dipaksa satu per satu.
+   */
+  it('refleks-banding terbukti merugikan — beban yang bisa diukur', () => {
+    for (const profesiId of ['asn-3b', 'pegawai-bank']) {
+      const tanpa = median(
+        jalankan(profesiId, []).map((h) => kekayaanBersih(h.state.keuangan)),
+      );
+      const dengan = median(
+        jalankan(profesiId, ['refleks-banding']).map((h) => kekayaanBersih(h.state.keuangan)),
+      );
+      expect(dengan, `${profesiId} tidak terbebani refleks-banding`).toBeLessThan(tanpa);
+    }
+  });
+
+  /**
+   * refleks-panik pernah MUSTAHIL menyala: ambangnya 20% sementara gerak satu
+   * giliran terdalam yang mungkin cuma 17,7%. Label tanpa efek. Tes ini menjaga
+   * agar ia tetap benar-benar menyentuh permainan — tanpa menuntut arah, sebab
+   * arahnya memang tidak konsisten lintas profesi.
+   */
+  it('refleks-panik benar-benar menyentuh permainan, bukan sekadar label', () => {
+    const tanpa = jalankan('asn-3b', []).map((h) => kekayaanBersih(h.state.keuangan));
+    const dengan = jalankan('asn-3b', ['refleks-panik']).map((h) =>
+      kekayaanBersih(h.state.keuangan),
+    );
+    expect(dengan.some((nilai, i) => nilai !== tanpa[i])).toBe(true);
+  });
+
+  /**
+   * refleks-kejar mengukur NOL, dan itu bukan cacat: bebannya adalah "tidak
+   * bisa menolak", sedangkan kebijakan tiruan memang tidak pernah ingin
+   * menolak tawaran berimbal hasil tinggi. Yang dikunci di sini adalah
+   * sebabnya, supaya nol itu tidak pernah disalahartikan sebagai kartu rusak.
+   */
+  it('refleks-kejar tak terukur simulator karena kebijakannya memang sudah mengambil', () => {
+    const kartu = cariKartu('gerobak-minuman')!;
+    expect((kartu.arusKasBulanan * 12) / kartu.harga).toBeGreaterThan(0.3);
+
+    const kaya: StatePermainan = {
+      ...stateAwal('kejar-sim', 'asn-3b'),
+      kartuTerbuka: kartu,
+      keuangan: { ...stateAwal('kejar-sim', 'asn-3b').keuangan, saldoKas: 500_000_000 },
+    };
+    expect(putuskanKartu(kaya, 'seimbang')).toBe('ambil');
   });
 });

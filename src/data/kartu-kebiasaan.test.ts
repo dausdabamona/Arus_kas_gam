@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { KARTU_KEBIASAAN, cariKartuKebiasaan } from './kartu-kebiasaan';
+import { INSTRUMEN } from './instrumen';
 
 /** Pasangan sah antara efek dan jalan keluarnya. */
 const PASANGAN: Record<string, string> = {
@@ -56,6 +57,21 @@ describe('data kartu kebiasaan lama', () => {
         expect(kartu.efek.kenaikanGayaHidup).toBeGreaterThan(0);
         expect(kartu.efek.kenaikanGayaHidup).toBeLessThan(0.5);
       }
+    }
+  });
+
+  /**
+   * Refleks yang ambangnya di atas gerak terbesar yang mungkin tidak pernah
+   * menyala sekali pun — label tanpa efek. Cacat ini pernah nyata: ambang 0,20
+   * melawan volatilitas maksimum 18%.
+   */
+  it('menjaga ambang panik tetap bisa dicapai oleh pasar yang ada', () => {
+    const volatilitasTertinggi = Math.max(...INSTRUMEN.map((i) => i.volatilitasBulanan));
+    for (const kartu of KARTU_KEBIASAAN) {
+      if (kartu.efek.jenis !== 'panik') continue;
+      expect(kartu.efek.ambangTurun, 'ambang di atas gerak terbesar yang mungkin').toBeLessThan(
+        volatilitasTertinggi,
+      );
     }
   });
 
