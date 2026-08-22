@@ -54,6 +54,7 @@ koneksi tidak stabil. Sekali main: 20–35 menit. Bisa dijeda kapan saja.
 Nama produk final ditentukan belakangan; nama kerja: **Arus**.
 
 **Disclaimer wajib** di layar pembuka dan layar hasil akhir:
+
 > Simulasi untuk latihan. Angka disederhanakan dan bukan saran investasi.
 
 ---
@@ -103,71 +104,36 @@ Konsekuensi yang didapat gratis:
 - **Multiplayer online nanti tidak perlu tulis ulang** — cukup sinkronkan
   event log, bukan state.
 
+**Invarian konsumsi PRNG (ditemukan dua kali, dikunci sebagai aturan tetap):**
+jumlah angka acak yang ditarik per kejadian **tidak boleh bergantung pada
+konteks**. Undian bersyarat harus selalu menarik jumlah angka yang sama, entah
+cadangannya dipakai atau tidak — kalau tidak, deret bergeser dan determinisme
+bocor lewat panjang deret, bukan lewat nilainya. Gejalanya tak terlihat dari
+hasil; hanya ketahuan bila konsumsi PRNG dicurigai. Dua kejadian nyata:
+tabrakan ruang-indeks pasar-vs-dadu, dan undian kartu guncang yang menarik
+dua angka bahkan saat cadangan tak dipakai.
+
 ### 4.3 Event log (append-only)
 
 State permainan **tidak disimpan langsung**. Yang disimpan adalah daftar
 kejadian; state dihitung ulang dengan memutar ulang log.
 
-```typescript
-type GameEvent =
-  | { t: number; type: 'MULAI';        payload: { seed: string; profesiId: string } }
-  | { t: number; type: 'LEMPAR_DADU';  payload: { pemainId: string } }
-  | { t: number; type: 'AMBIL_KARTU';  payload: { tumpukan: TumpukanId } }
-  | { t: number; type: 'PUTUSKAN';     payload: { kartuId: string; pilihan: 'ambil' | 'tolak' } }
-  | { t: number; type: 'SUHU_BATIN';   payload: { nilai: number; fase: 'sebelum' | 'sesudah' } }
-  | { t: number; type: 'JEDA_BATIN';   payload: JedaBatinPayload }
-  | { t: number; type: 'LEWATI_JEDA';  payload: { pemicuId: string } }
-  | { t: number; type: 'TANAM';        payload: { kalimat: string; tindakan: string; panenPadaGiliran: number } }
-  | { t: number; type: 'TUAI';         payload: { tanamId: string; hasilLuar: number; hasilDalam: 'tenang' | 'tersulut' } }
-  | { t: number; type: 'GERBANG_NIAT'; payload: { niat: string } }
-  | { t: number; type: 'AKHIR';        payload: { alasan: 'lolos' | 'menyerah' | 'bangkrut' } }
-```
-
 Aturan: **`engine/` murni fungsi — tanpa React, tanpa Dexie, tanpa efek
 samping.** `reduce(state, event) → state`. Ini yang membuatnya bisa diuji dan
 bisa dijadikan multiplayer.
 
-### 4.4 Struktur folder
-
-```
-src/
-├── engine/                   # MURNI, tanpa dependensi UI
-│   ├── prng.ts               # mulberry32 ber-seed
-│   ├── keuangan.ts           # rumus laporan keuangan
-│   ├── reducer.ts            # reduce(state, event) → state
-│   ├── papan.ts              # definisi petak & pergerakan
-│   ├── pasar.ts              # gerak harga instrumen
-│   ├── bot.ts                # keputusan bot rule-based
-│   └── skor.ts               # Kekayaan & Kemerdekaan
-├── data/                     # konten (JSON/TS), bukan logika
-│   ├── profesi.ts
-│   ├── kartu-peluang.ts
-│   ├── kartu-guncang.ts
-│   ├── kartu-pasar.ts
-│   ├── kartu-kebiasaan.ts
-│   └── naskah-jeda.ts        # kalimat pemandu 4T
-├── components/
-│   ├── ui/                   # Tombol, Kartu, Lencana, Modal
-│   ├── papan/                # Papan, Bidak, Petak
-│   ├── keuangan/             # LaporanKeuangan, BarisArus
-│   └── jeda/                 # JedaBatin, SuhuBatin, LayarPanen
-├── hooks/                    # use-permainan, use-jurnal
-├── lib/
-│   ├── db.ts                 # Dexie
-│   └── utils.ts
-├── types/
-└── screens/
-```
+**Tidak ada angka di event log yang boleh menentukan hasil.** Harga pasar
+dihitung ulang dari `ketukan`, jadwal panen dihitung ulang dari seed + t —
+angka yang dikirim di dalam kejadian sengaja diabaikan mesin.
 
 ### 4.5 Skema Dexie
 
 ```typescript
-// lib/db.ts
 db.version(1).stores({
-  permainan: 'id, seed, dibuatPada, status',      // metadata sesi
-  kejadian:  '++id, permainanId, t',              // event log
-  jurnal:    '++id, permainanId, dibuatPada, kebutuhan', // hasil Tanam & Tuai
-  pengaturan:'kunci'                              // preferensi pemain
+  permainan: 'id, seed, dibuatPada, status',
+  kejadian:  '++id, permainanId, t',
+  jurnal:    '++id, permainanId, dibuatPada, kebutuhan',
+  pengaturan:'kunci'
 });
 ```
 
@@ -176,30 +142,13 @@ bukan milik sesi.
 
 ### 4.6 Ketahanan penyimpanan
 
-Basis data yang dipakai adalah **IndexedDB — mesin bawaan HP**, sudah tersedia
-di browser Android/iOS tanpa pemasangan, tanpa izin, tanpa server. Dexie hanya
-pembungkus tipis di atasnya.
+Basis data yang dipakai adalah **IndexedDB — mesin bawaan HP**. Tiga pengaman,
+wajib masuk Fase 0:
 
-Risikonya: data browser bisa hilang. Pengguna menekan "hapus data aplikasi",
-atau Android membersihkannya sendiri saat penyimpanan menipis. Yang paling
-mahal kalau hilang adalah **jurnal** — dan bersamanya, kepercayaan pemain pada
-alat ini. Tiga pengaman, wajib masuk Fase 0:
-
-1. **`navigator.storage.persist()`** dipanggil saat pertama dibuka, meminta
-   sistem menandai data ini agar tidak dibersihkan otomatis. Tidak dijamin
-   dikabulkan, tapi tingkat keberhasilannya tinggi untuk PWA yang sudah
-   dipasang ke layar utama. Status ditampilkan apa adanya di Pengaturan.
-2. **Ekspor cadangan** — berkas `.json` tersimpan ke folder Unduhan tiap
-   10 sesi, plus tombol ekspor manual di layar Jurnal.
-3. **Pemisahan tabel** — jurnal terpisah dari data permainan, sehingga
-   menghapus permainan tidak pernah menyentuh jurnal.
-
-**Yang sengaja tidak dipakai:** SQLite WASM di atas OPFS. Itu SQLite
-sungguhan di dalam browser, tapi menambah ±1 MB unduhan dan kerumitan untuk
-skala data yang Dexie sudah tangani. Melanggar Prinsip 5.
-
-Jika nanti dibungkus jadi APK (Capacitor), kode yang sama jalan tanpa ditulis
-ulang dan Dexie tetap berfungsi di dalamnya.
+1. **`navigator.storage.persist()`** dipanggil saat pertama dibuka.
+2. **Ekspor cadangan** — berkas `.json` ke folder Unduhan tiap 10 sesi, plus
+   tombol ekspor manual di layar Jurnal.
+3. **Pemisahan tabel** — jurnal terpisah dari data permainan.
 
 ---
 
@@ -211,13 +160,10 @@ ulang dan Dexie tetap berfungsi di dalamnya.
 Pendapatan Aktif    = gaji bersih bulanan
 Pendapatan Pasif    = Σ (arus kas tiap aset)
 Total Pendapatan    = Pendapatan Aktif + Pendapatan Pasif
-
 Total Pengeluaran   = pengeluaran tetap
                     + Σ cicilan liabilitas
                     + (biaya per anak × jumlah anak)
-
 Arus Kas Bulanan    = Total Pendapatan − Total Pengeluaran
-
 Kekayaan Bersih     = saldo kas + Σ nilai aset − Σ sisa utang
 ```
 
@@ -234,14 +180,10 @@ Invarian yang wajib dijaga tes: **menjual aset tidak mengubah kekayaan bersih.**
 Pendapatan Pasif ≥ Total Pengeluaran
 ```
 
-Catatan desain: memakai `≥ Total Pengeluaran` (bukan `>`) supaya momen lolos
-terasa tepat di titik impas — lebih dramatis dan lebih benar secara konsep.
-
 ### 5.3 Aturan uang habis
 
 Jika saldo kas < 0 di akhir giliran, pemain wajib memilih salah satu dari
-**tiga tuas**. Ini pemicu emosi paling kuat di seluruh game — jangan
-dihaluskan, tapi jangan pula sampai tak bersisa satu pun langkah sah.
+**tiga tuas**.
 
 | Tuas | Efek | Yang dikorbankan |
 |---|---|---|
@@ -249,127 +191,84 @@ dihaluskan, tapi jangan pula sampai tak bersisa satu pun langkah sah.
 | **Pinjam darurat** | Kas bertambah, cicilan bunga menempel | Arus kas masa depan |
 | **Berhemat** | Pengeluaran tetap turun 15%, maksimal dua kali | Kenyamanan, permanen |
 
-**Berhemat hanya tersedia saat kas minus.** Tanpa batas itu, tuas ini akan
-dipakai di giliran pertama tanpa biaya apa pun dan kehilangan seluruh
-maknanya.
-
-**Plafon pinjaman darurat:** total sisa utang darurat maksimal 6 × gaji
-bulanan. Utang tak terbatas menghapus satu-satunya rem yang sudah dirancang.
-
-**Bangkrut** terjadi bila kas minus dan ketiga tuas habis: tidak ada aset,
-plafon penuh, penghematan mentok. Bukan kekalahan mendadak — ini akhir yang
-sah. Jurnal tetap tersimpan, permainan bisa diulang.
+**Berhemat hanya tersedia saat kas minus.** **Plafon pinjaman darurat:** total
+sisa utang darurat maksimal 6 × gaji bulanan. **Bangkrut** terjadi bila kas
+minus dan ketiga tuas habis.
 
 **Aturan pinjaman darurat:**
-- Cicilan bulanan = 2% × sisa pokok, masuk ke Total Pengeluaran.
-- **Pokok tidak menyusut sendiri.** Ini disengaja: modelnya utang konsumtif
-  — cicilan minimum kartu kredit, paylater, pinjaman harian. Kebocoran yang
-  tidak berhenti sampai pemain sengaja menghentikannya (§8.2).
-- **Pelunasan sukarela** kapan saja dari saldo kas, sebagian atau penuh.
-  Tanpa denda. Pokok berkurang, cicilan ikut turun. Tanpa jalan keluar ini,
-  pinjaman berubah dari pelajaran menjadi hukuman dan melanggar Prinsip 4.
-- **Tanpa tenor.** Bunga majemuk muncul sendiri lewat jalur yang benar: bunga
-  membebani arus kas, kas minus lagi memaksa pinjaman berikutnya.
+- Cicilan bulanan = 2% × sisa pokok.
+- **Pokok tidak menyusut sendiri.**
+- **Pelunasan sukarela** kapan saja, tanpa denda.
+- **Tanpa tenor.**
 
 **Utang berbunga berjalan vs utang bawaan profesi.** Hanya liabilitas
-ber-`bungaBulanan` (pinjaman darurat) yang cicilannya menyusut saat dilunasi
-sebagian. Utang bawaan seperti KPR dan kendaraan: pokok turun, **cicilan tetap
-sampai lunas penuh.** Ini disengaja — mencicil setengah-setengah tidak
-membebaskan arus kas; kebocoran baru berhenti saat utangnya benar-benar
-selesai.
+ber-`bungaBulanan` yang cicilannya menyusut saat dilunasi sebagian. Utang
+bawaan seperti KPR: pokok turun, **cicilan tetap sampai lunas penuh.**
 
-**Syarat tampilan:** kemajuan pelunasan sebagian wajib terlihat (sisa pokok
-terhadap pokok awal), dan lembar konfirmasi menyatakan apa adanya bahwa
-cicilan tidak berubah sampai lunas. Tanpa itu pemain merasa uangnya lenyap
-tanpa jejak.
+**Syarat tampilan:** kemajuan pelunasan sebagian wajib terlihat, dan lembar
+konfirmasi menyatakan apa adanya bahwa cicilan tidak berubah sampai lunas.
 
 ### 5.4 Invarian keseimbangan
 
 **Invarian 1 — sistem harus konvergen.**
-
 > Penghematan maksimum harus melebihi beban bunga saat plafon pinjaman penuh.
 
-Contoh guru honorer: penghematan 28% × Rp 1.800.000 = Rp 504.000/bulan,
-melawan bunga maksimum 2% × (6 × Rp 2.200.000) = Rp 264.000/bulan. Ada jarak,
-jadi sistemnya punya titik seimbang.
-
-Tanpa invarian ini, petak Gajian yang membayar arus kas **bersih** (dan itu
-benar secara akuntansi) menciptakan umpan balik yang tak pernah pulih: makin
-banyak utang → gajian makin kecil → butuh pinjaman baru. Cacat ini ditemukan
-lewat simulasi mesin, bukan lewat pembacaan angka, dan wajib dijaga oleh
-`simulasi.test.ts` selamanya.
-
 **Invarian 3 — guncangan harus sebanding dengan pemasukan per giliran.**
-
 > Pemasukan Gajian yang diharapkan per giliran ≥ **1,5 ×** total drain acak
 > yang diharapkan per giliran (Biaya Tak Terduga + Amal).
 
-**Biaya anak bukan drain.** Mendarat di TAMBAH_ANAK tidak mengurangi kas sama
-sekali; yang naik adalah pengeluaran bulanan, yang menurunkan arus kas bersih,
-yang menurunkan pembayaran Gajian. Efeknya sudah terhitung penuh di sisi
-pemasukan — memasukkannya lagi ke sisi drain menghitungnya dua kali.
+**Biaya anak bukan drain.** Efeknya sudah terhitung penuh di sisi pemasukan.
 
 **Skala guncangan dikunci sekali di awal permainan**, diturunkan dari arus kas
 bersih awal profesi (`skalaGuncangan`), bukan dari gaji dan bukan dari
-pemasukan yang berjalan:
+pemasukan yang berjalan.
 
-- Diskalakan ke **gaji** → menghukum profesi bermargin tipis dua kali.
-- Diskalakan ke pemasukan yang **berjalan** → guncangan tumbuh mengikuti
-  penghasilan, pemain tidak pernah bisa melampaui gejolak, dan satu-satunya
-  hadiah membangun aset lenyap.
-- Dikunci di **awal** → adil antar profesi, dan pemain yang membangun aset
-  benar-benar keluar dari zona rapuh. Perbedaan kesulitan tetap datang dari
-  struktur (cicilan yang mencekik), bukan dari besar guncangannya.
-
-Batas pelengkap: **maksimal 3 anak.** Tanpa batas, pengeluaran naik permanen
-setiap putaran papan dan kebangkrutan menjadi pasti terlepas dari keterampilan
-pemain.
+Batas pelengkap: **maksimal 3 anak.**
 
 **Invarian 4 — profesi tidak boleh mati oleh dadu saja.**
-
 > Beban anak penuh (3 × biaya per anak) ≤ **60%** arus kas bersih awal.
 
-Kedatangan anak sepenuhnya ditentukan dadu, tanpa satu pun keputusan pemain.
-Bila sebuah profesi tidak bisa memenuhi invarian ini tanpa angka yang konyol,
-yang salah adalah **margin awalnya yang terlalu tipis** — longgarkan
-cicilannya, jangan murahkan anaknya.
-
 **Invarian 5 — jenjang imbal hasil pasar harus jujur.**
-
 > Ekspektasi jangka panjang: reksa dana indeks ≥ saham individual > deposito.
+> Sebaran diukur **relatif terhadap median per unit**, bukan nilai portofolio
+> akhir.
 
-Kalau saham individual menang dalam ekspektasi, game ini mengajarkan judi
-(§8.2). Saham boleh — dan harus — punya sebaran jauh lebih lebar; yang tidak
-boleh adalah imbal hasil harapannya lebih tinggi. Emas boleh setara deposito
-dengan gejolak berkali lipat: itulah harga sebuah pelarian.
+**Peringatan yang dibayar mahal:** tes lama mengukur sebaran nilai portofolio
+akhir. Setelah GUNCANG masuk, angka itu berhenti mengukur gejolak instrumen
+dan diam-diam mulai mengukur berapa unit yang sempat dibeli — indeks tampak
+lebih menyebar daripada saham hanya karena kebijakannya memborong lebih
+banyak unit. **Tes yang lulus sambil mengukur hal yang salah lebih berbahaya
+daripada tes yang merah.** Pola umum: setiap invarian yang ditulis sebelum
+sebuah fitur bisa berhenti mengukur klaimnya setelah fitur itu masuk —
+tinjau ulang apa yang diukurnya, bukan cuma apakah masih hijau.
 
-**Invarian 6 — krisis harus benar-benar terjadi.**
+**Invarian 6 — krisis pertama harus tiba selagi pemain masih telanjang.**
+> Dengan kebijakan seimbang, kas minus pertama terpicu selambatnya giliran
+> **40**, dan mayoritas permainan memakai tuas darurat minimal sekali.
 
-> Dengan kebijakan seimbang, kas minus terpicu setidaknya sekali per ±40
-> giliran, dan mayoritas permainan memakai tuas darurat minimal sekali.
+Bentuk lama ("kas minus sekali per ±40 giliran sepanjang permainan") **secara
+struktural mustahil**: skala guncangan dikunci di arus kas awal (§5.4), tapi
+kekayaan pemain tumbuh tanpa batas — median kas saat guncang tiba 7–12× skala,
+persentil 90 mencapai 40–60×. Pukulan berskala tetap tidak bisa menembus
+tembok itu, jadi laju krisis selalu melandai di paruh kedua.
 
-Setelah penyeimbangan Fase 2, derau harian (Biaya Tak Terduga, Amal) tidak
-lagi memicu kas minus — dan itu benar. Derau harus bisa dilalui; yang tajam
-dan jarang adalah guncangan yang **dirancang**. Tapi §5.3 menyebut momen ini
-pemicu emosi terkuat di seluruh game, jadi bila petak GUNCANG (Fase 5) tidak
-cukup berat, seluruh sistem tiga tuas praktis tidak pernah terpakai. Ukur
-dengan simulator saat menyusun angka GUNCANG.
+Tes penjaga sebab: **kas pemain yang lolos harus > 20× skala guncangan.**
+Kalau tes itu suatu hari menyala, tembok kekayaan sudah runtuh dan bentuk
+Invarian 6 layak ditinjau ulang — alasannya menjaga dirinya sendiri.
 
-**Invarian 2 — gradien prioritas utang.**
+**Batas kartu inflasi:** kenaikan per kartu tetap 0,08 (§8.3), tetapi
+akumulasi kenaikan pengeluaran seumur permainan **tidak melebihi 0,5 × skala
+guncangan**. Tanpa plafon ini, 8% majemuk 20–30 kali berubah dari guncangan
+menjadi inflasi berjalan — persis yang §8.3 tolak, masuk lewat pintu belakang.
 
-Penyetelan angka di Fase 8 **tidak boleh merusak urutan imbal hasil ini**:
+**Invarian 2 — gradien prioritas utang.** Penyetelan angka di Fase 8 **tidak
+boleh merusak urutan imbal hasil ini**:
 
 | Tindakan | Nilai per tahun bagi pemain |
 |---|---|
 | Lunasi pinjaman darurat (2%/bln) | ~27% |
-| Beli aset produktif (mis. properti sewa) | ~10% |
+| Beli aset produktif | ~10% |
 | Lunasi KPR bersubsidi | ~4,4% |
-
-Urutannya adalah urutan yang benar di kehidupan nyata: bereskan utang mahal
-dulu, baru bangun aset, dan jangan buru-buru melunasi KPR bersubsidi. Pemain
-yang memburu pelunasan KPR karena "utang itu menakutkan" akan tertinggal dari
-yang berhitung — takut-kurang yang menyamar jadi kehati-hatian. Pelajaran ini
-harus muncul sendiri dari angka, tanpa satu kalimat nasihat pun.
 
 Tidak ada "kalah" mendadak. Bangkrut = mengulang, dengan jurnal tetap tersimpan.
 
@@ -391,6 +290,11 @@ Tidak ada "kalah" mendadak. Bangkrut = mengulang, dengan jurnal tetap tersimpan.
 | Guncang | 3 | Pemicu berat (PHK, sakit, musibah) |
 | Amal | 1 | Uji kelekatan saat sedang sempit |
 | Tambah Anak | 1 | Pengeluaran naik permanen |
+
+**Kemandekan bukan kegagalan.** Pemain yang menolak setiap peluang tidak
+bangkrut dan tidak maju — ia berputar. Pendapatan pasifnya tetap nol.
+Dijaga sepanjang 200 giliran (jauh di atas sesi 20–35 menit §1.4) untuk ketiga
+profesi.
 
 ### 6.2 Alur giliran
 
@@ -420,19 +324,45 @@ Saat lolos, sebelum masuk tahap 2, pemain **wajib mengetik satu kalimat**:
 kebebasan ini untuk apa. Disimpan sebagai `GERBANG_NIAT`.
 
 Kalimat itu dimunculkan kembali — utuh, tanpa komentar — pada momen pemain
-sedang tergoda mengejar angka besar di tahap 2. Konfrontasi datang dari diri
-sendiri, bukan dari game.
+sedang tergoda mengejar angka besar di tahap 2.
 
 ### 7.2 Kartu Kebiasaan Lama (jembatan antar tahap)
 
-Yang terbawa ke tahap 2 bukan uangnya, tapi refleksnya. Skor Kemerdekaan
-tahap 1 menentukan berapa kartu kebiasaan yang dibawa:
+Yang terbawa ke tahap 2 bukan uangnya, tapi refleksnya.
 
-| Skor Kemerdekaan T1 | Kartu kebiasaan dibawa |
+**Kartu ini BUKAN hukuman — ia keadaan awal yang jujur.** Bingkainya wajib:
+"refleks ini belum kamu latih, jadi ia masih menyala otomatis; berikut cara
+mematikannya." Bukan "kamu gagal, ini bebanmu". Kalau layar Gerbang salah
+membingkainya, ia terasa denda — dan Aturan Naskah 6 ("Lewati tanpa penalti")
+runtuh diam-diam, karena melewati jeda berujung kartu yang dirasakan sebagai
+biaya. Setiap kartu datang bersama syarat lepasnya; membawanya adalah titik
+mulai dengan pekerjaan yang jelas, bukan kekalahan.
+
+**Gerbang membaca skor DAN jumlah ujian, tidak boleh skor mentah.** Skor
+Kemerdekaan adalah `keputusanTenang / keputusanBertekanan`. Pemain yang lolos
+tanpa pernah tertekan berskor `0/0` = penuh — tapi kalau itu berarti nol
+kartu, pemain yang tak pernah diuji masuk paling bersih sementara yang
+bergulat sepuluh kali dan menang tujuh justru membawa beban. Itu terbalik:
+yang terbawa adalah refleks yang belum terlatih, dan orang yang tak pernah
+diuji justru paling belum terlatih. Aman dan terlatih adalah dua hal berbeda.
+
+**Kartu dipilih acak murni, bukan menurut kelemahan pemain.** Memilih kartu
+dari skor pemain adalah mesin mendiagnosis orang dari angka — dan §7.2
+menempatkan kartu ini sebagai keadaan awal jujur, bukan diagnosis. Kocokan
+murni bukan pilihan termudah; ia satu-satunya yang setia pada bingkai
+bukan-hukuman.
+
+| Kondisi | Kartu kebiasaan dibawa |
 |---|---|
-| ≥ 70 | 0 |
-| 40–69 | 1 |
-| < 40 | 2 |
+| Ujian ≥ minimum, skor ≥ 70 | 0 |
+| Ujian ≥ minimum, skor 40–69 | 1 |
+| Ujian ≥ minimum, skor < 40 | 2 |
+| Ujian < minimum (belum teruji) | 2 |
+
+`MINIMUM_UJIAN` menebak perilaku manusia; simulator tidak bisa menjawabnya
+(pelari tak menyentuh suhu/jeda). Ditandai di kode sebagai angka belum teruji,
+disetel di Fase 8 dari orang sungguhan — kerabat `AMBANG_REDA`, dan **diuji
+sebagai satu paket dengannya**.
 
 | Kartu | Efek | Cara lepas |
 |---|---|---|
@@ -440,19 +370,25 @@ tahap 1 menentukan berapa kartu kebiasaan yang dibawa:
 | **Refleks Kejar** | Wajib ambil peluang berimbal hasil >30% | Menolak 1× dalam keadaan tenang |
 | **Refleks Banding** | Pengeluaran gaya hidup +10% tiap kali bot melampaui kekayaan pemain | Lolos Jeda Batin di kebutuhan "pengakuan" |
 
+**Refleks yang memaksa WAJIB tetap membuka jalur Jeda pada keputusan yang
+sama** — di situlah pemain melatih pelepasannya. Refleks yang memaksa lalu
+mengunci tanpa jalan keluar adalah hukuman murni.
+
+**Refleks Banding menyala SEKALI per pelampauan**, bukan tiap giliran selama
+bot unggul. Efek berulang tanpa pemicu diskrit meledak — kerabat cacat
+Amal-tanpa-batas dan spiral utang.
+
 Pesan yang tidak perlu dijelaskan: uangnya berubah, orangnya belum.
 
 ### 7.3 Syarat menang tahap 2
 
-Tercapainya **niat yang ditulis di Gerbang Niat** (dikonversi jadi target
-arus kas oleh game), **atau** pemain memilih berhenti — dan berhenti dengan
-sadar dicatat sebagai kemenangan di papan Kemerdekaan, bukan kekalahan.
+Tercapainya **niat yang ditulis di Gerbang Niat**, **atau** pemain memilih
+berhenti — dan berhenti dengan sadar dicatat sebagai kemenangan di papan
+Kemerdekaan, bukan kekalahan.
 
 ---
 
 ## 8. Pasar & Instrumen
-
-Pemicu emosi paling efisien di game, karena bergerak tanpa diminta.
 
 | Instrumen | Volatilitas/bulan | Arus kas | Peran emosional |
 |---|---|---|---|
@@ -460,30 +396,19 @@ Pemicu emosi paling efisien di game, karena bergerak tanpa diminta.
 | Reksa dana indeks | ±4% | 0 (tumbuh) | Menang pelan; sering diremehkan |
 | Saham individual | ±18% | dividen acak | FOMO, panik, menyesal |
 | Emas | ±6% | 0 | Pelarian saat takut |
-| Properti sewa | ±2% | sewa tetap | Beban perawatan mendadak |
-| Usaha kecil | ±25% | tinggi bila bertahan | Serakah & keterikatan ego |
 
 ### 8.1 Mekanik kunci: **harga bergerak selama pemain menimbang**
 
-Saat kartu Pasar terbuka, timer 20 detik berjalan dan harga berubah tiap
-5 detik di depan mata pemain. Ini FOMO dalam bentuk kode.
+Timer 20 detik berjalan dan harga berubah tiap 5 detik.
 
-**Pengecualian penting:** membuka Jeda Batin **membekukan** timer. Pemain
-belajar langsung bahwa berhenti sejenak tidak benar-benar merugikan — persis
-kebalikan dari yang dirasakan tubuh saat panik.
+**Pengecualian penting:** membuka Jeda Batin **membekukan** timer.
 
 ### 8.2 Batas kejujuran isi
 
-Isi kartu wajib benar secara literasi finansial: dana darurat didahulukan,
-diversifikasi berguna, indeks mengalahkan tebak-tebakan dalam jangka panjang,
-utang konsumtif berbunga tinggi adalah kebocoran. Game yang memancing emosi
+Isi kartu wajib benar secara literasi finansial. Game yang memancing emosi
 di atas data keliru hanya melatih judi.
 
 ### 8.3 Kelas nilai aset — dua sumbu, bukan satu
-
-Nilai aset kartu **tidak beku**. Mesin penilaian ulang pasar (Fase 3)
-diperluas ke aset kartu lewat `driftBulanan` dan `volatilitasBulanan`
-opsional pada kartu. Tiga kelas jujur:
 
 | Kelas | Contoh | Arus kas | Nilai |
 |---|---|---|---|
@@ -491,22 +416,11 @@ opsional pada kartu. Tiga kelas jujur:
 | Stagnan | Kos, kontrakan | Positif stabil | Nyaris diam |
 | Depresiasi | Motor sewa, gerobak, kapal | Positif tinggi | Turun terus |
 
-Pelajarannya: **arus kas dan apresiasi adalah dua sumbu berbeda.** Kapal
-berarus kas terbesar tapi nilainya menyusut; tanah menguras kas tapi diam-diam
-menumpuk kekayaan. Aturan isi: **tidak boleh ada kelas yang unggul di semua
-sumbu** — kalau ada, kelas lainnya cuma hiasan. Diperiksa simulator.
+Aturan isi: **tidak boleh ada kelas yang unggul di semua sumbu.**
 
-**Keputusan: inflasi kontinu TIDAK dimodelkan.** Perayapan pengeluaran/gaji
-per giliran cuma jadi derau yang menggoyang Garis Arus karena sebab di luar
-kendali pemain, menggerus utang tetap sehingga mengacak Invarian 2, dan
-menjadi pengganggu global bagi semua invarian keseimbangan. Beban emosional
-inflasi disampaikan lewat **kartu Guncang diskrit** (Fase 5): "Harga-harga
-naik. Pengeluaran tetap naik 8%, permanen." Satu pukulan bernama mengajarkan
-lebih banyak daripada perayapan 0,25% yang tak pernah terasa.
-
-Urutan pengerjaan: kelas nilai aset masuk sebagai tambalan kecil setelah
-Fase 4, **sebelum** Fase 5 — angka GUNCANG harus disetel terhadap model aset
-yang sudah final.
+**Keputusan: inflasi kontinu TIDAK dimodelkan.** Beban emosional inflasi
+disampaikan lewat **kartu Guncang diskrit**: "Harga-harga naik. Pengeluaran
+tetap naik 8%, permanen."
 
 ---
 
@@ -521,105 +435,80 @@ yang sudah final.
 | Iri | Bot lolos duluan dan menyombong | Pengakuan |
 | Menyesal | Instrumen yang ditolak melonjak 3× | Kendali |
 
+Kartu Guncang membawa `pemicu` sendiri. Pemicu non-guncang dipetakan tetap
+(hidup sebagai konstanta di `LayarPapan`, bertaut ke bagian ini): **peluang
+besar → keamanan**, **pasar → kendali**. Peluang kecil tidak menawarkan jeda
+sama sekali (§9.3).
+
 ### 9.2 Suhu Batin
 
 Setelah kartu bertekanan, pemain menilai sendiri 0–10 lewat slider.
-**Game tidak pernah menebak perasaan pemain.** Nilai ini murni laporan diri
-dan tidak pernah dipakai untuk menghukum.
+**Game tidak pernah menebak perasaan pemain.**
 
 ### 9.3 Jeda Batin — protokol 4T
 
-**Tenang** — tiga napas dipandu (animasi lingkaran, 4 detik masuk, 6 detik
-keluar). Satu pertanyaan: *"Di bagian tubuh mana rasanya paling terasa?"*
-Pilihan tap: dada / perut / tenggorokan / bahu / tidak jelas.
+**Tenang** — turun dari kepala ke badan: rasakan telapak kaki menempel lantai,
+lalu berat badan di tempat duduk, lalu napas biasa 3–4 kali **tanpa diatur**.
+(Setia ke sumber 3T: bukan teknik pernapasan berhitung.)
 
-**Temu** — pertanyaan terbuka, tanpa kesimpulan:
-*"Kalau tawaran ini lewat begitu saja, apa yang sebenarnya terancam?"*
-Lalu pemain memilah sendiri: **program / emosi / informasi / kebiasaan**.
+**Temu** — pertanyaan terbuka, tanpa kesimpulan. Lalu pemain memilah sendiri:
+**program / emosi / informasi / kebiasaan**.
 
-- Jika **emosi pekat** → alihkan ke tiga pertanyaan pelepasan:
-  *Bisakah perasaan ini dibiarkan ada? Bisakah dilepas? Maukah? Kapan?*
-  Melepas dulu; mengosongkan lahan sebelum menanam.
-- Jika **informasi** → game menunjukkan data yang relevan (mis. rasio utang).
-  Ini bukan masalah batin, jangan diperlakukan begitu.
+- Jika **emosi pekat** → tiga pertanyaan pelepasan.
+- Jika **informasi** → game menunjukkan data yang relevan. Ini bukan masalah
+  batin — tapi **tetap diukur suhunya**: pemain yang tenang karena datanya
+  jelas layak dapat kredit Kemerdekaan yang sama. "Jangan diproses sebagai
+  emosi" bukan berarti "jangan diukur".
 
-**Tanam** — pemain mengetik satu kalimat pembalik yang jujur (bukan afirmasi
-diulang-ulang) + satu tindakan terkecil. Disimpan, diberi `panenPadaGiliran =
-giliranSekarang + acak(4..10)`.
+**Tanam** — satu kalimat pembalik yang jujur + satu tindakan terkecil.
+`panenPadaGiliran = giliranSekarang + acak(4..10)`.
 
-**Tuai** — inilah yang tidak bisa dilatih di hidup nyata karena jaraknya
-bertahun-tahun. Di sini dipendekkan jadi menit.
+**Tuai** — panen **wajib punya dua sisi terpisah dan sengaja tidak selalu
+searah.**
 
-Beberapa giliran kemudian, layar panen muncul:
+**Nol bukan impas — nol berarti tak terukur.** Layar Tuai menampilkan yang tak
+terukur sebagai tanda hubung, bukan "Rp 0", dan -0 dinormalkan.
 
-> Delapan giliran lalu, dalam keadaan tenang, Anda menulis:
-> *"Rezeki saya tidak ditentukan oleh satu tawaran."*
-> Lalu Anda menolaknya.
-> **Hasil luar:** −Rp 0 (tawaran itu ternyata gagal total)
-> **Hasil dalam:** tenang
-
-Panen **wajib punya dua sisi terpisah dan sengaja tidak selalu searah.**
-Sebagian kasus harus berbunyi: hasil luar merah, hasil dalam hijau. Di situ
-pelajarannya masuk sendiri — yang bisa dikendalikan adalah kualitas ikhtiar,
-bukan hasilnya.
-
-Layar panen berhenti sejenak (tombol lanjut baru aktif setelah 3 detik)
-sebelum giliran berikutnya. Tanpa jeda ini, Tuai hanya jadi papan skor.
+Layar panen berhenti sejenak (tombol lanjut baru aktif setelah 3 detik).
 
 ### 9.4 Naskah
 
-Semua kalimat pemandu disimpan terpisah di `data/naskah-jeda.ts`, memakai
-pertanyaan terbuka tanpa kesimpulan. Nada: tenang, pendek, tidak menggurui,
-tidak memuji. Tidak pernah memakai kata "seharusnya".
+Semua kalimat pemandu disimpan terpisah di `data/naskah-jeda.ts`.
+
+**Batas dua suara.** Aturan nada mengikat suara **pemandu** saja. Suara bot dan
+teks kartu Guncang justru boleh menusuk — merekalah pemicunya. Penjaga nada
+otomatis hanya menjangkau berkas naskah pemandu, dan itu disengaja.
 
 ---
 
 ## 10. Dua Papan Skor
 
 ### 10.1 Kekayaan
-Kekayaan bersih + arus kas pasif. Angka biasa.
+Kekayaan bersih + arus kas pasif.
 
 ### 10.2 Kemerdekaan
-
 ```
-Keputusan Tenang   = keputusan bertekanan yang diambil setelah Jeda Batin
-                     dengan penurunan Suhu Batin ≥ 3 poin
-Skor Kemerdekaan   = (Keputusan Tenang / Total Keputusan Bertekanan) × 100
+Skor Kemerdekaan = (Keputusan Tenang / Total Keputusan Bertekanan) × 100
 ```
-
 Melewati Jeda Batin **tidak dihukum**, hanya tidak dihitung sebagai Keputusan
-Tenang. Perbedaannya besar dan harus dijaga di implementasi.
+Tenang.
 
 ### 10.3 Layar akhir
-
-Kedua skor ditampilkan **berdampingan, dengan bobot visual sama.** Empat
-kemungkinan hasil ditampilkan apa adanya, tanpa penilaian moral:
 
 | | Kemerdekaan tinggi | Kemerdekaan rendah |
 |---|---|---|
 | **Kekayaan tinggi** | Bebas | Kaya tapi terikat |
 | **Kekayaan rendah** | Tenang tapi belum berdaya | Belum jalan |
 
-Kotak "Kaya tapi terikat" adalah pesan utama seluruh game, dan jauh lebih
-tajam disampaikan lewat skor daripada lewat ceramah.
-
 ---
 
 ## 11. Bot
 
-Tiga bot, **rule-based, tanpa AI.** Di game ini pemain lain hampir tidak
-mempengaruhi keuangan pemain — masing-masing berlomba di papannya sendiri —
-jadi kecerdasan bot tidak dibutuhkan. Yang dibutuhkan adalah **kepribadian
-emosional yang terlihat.**
-
 | Bot | Perilaku | Fungsi |
 |---|---|---|
-| **Pak Rudi** | Panik jual saat turun >15%, beli saat sudah naik tinggi | Pemain melihat panik dari luar |
-| **Bu Sinta** | Kejar imbal hasil tertinggi, abaikan dana darurat | Serakah yang terlihat masuk akal |
-| **Pak Umar** | Konsisten, sederhana, cukup, menolak tawaran besar | Menang pelan-pelan; sering bikin pemain kesal |
-
-Bot **mengomentari** keputusannya dalam 1 kalimat pendek. Pemain mengenali
-polanya di luar dulu, sebelum mengenalinya di dirinya sendiri.
+| **Pak Rudi** | Panik jual saat turun, beli saat sudah naik | Pemain melihat panik dari luar |
+| **Bu Sinta** | Kejar imbal hasil tertinggi | Serakah yang terlihat masuk akal |
+| **Pak Umar** | Konsisten, sederhana, cukup | Menang pelan-pelan |
 
 Pak Umar sering menang di papan Kemerdekaan. Itu disengaja.
 
@@ -627,43 +516,22 @@ Pak Umar sering menang di papan Kemerdekaan. Itu disengaja.
 
 ## 12. Jurnal
 
-Semua kalimat Tanam + hasil Tuai + kebutuhan yang paling sering tersentuh
-tersimpan lintas sesi. Bisa diekspor ke teks/markdown untuk disalin ke jurnal
-30 hari yang sesungguhnya.
-
-Layar jurnal menampilkan satu pola tanpa menafsirkan:
-> Dari 14 momen bertekanan, 9 berhenti di **keamanan**.
-
-Ini yang menyambungkan game ke hidup nyata. Tanpanya, produk ini hanya hiburan.
+Semua kalimat Tanam + hasil Tuai + kebutuhan tersimpan lintas sesi.
 
 ---
 
 ## 13. Alur Layar
-
-```
-Pembuka (disclaimer)
-  └→ Beranda ─┬→ Lanjutkan permainan
-              ├→ Permainan baru → Pilih Profesi → Papan
-              ├→ Jurnal
-              └→ Pengaturan
-
-Papan ─┬→ Laporan Keuangan (sheet dari bawah)
-       ├→ Kartu → [Jeda Batin] → Keputusan
-       ├→ Layar Panen (muncul sendiri)
-       ├→ Gerbang Niat (sekali, saat lolos)
-       └→ Lingkar Luas → Ringkasan Akhir
-```
 
 ### 13.1 Tema visual
 - Latar ivory `#FDFBF7`, teks `#1C1917`
 - Primer teal `#0F766E`, aksen amber `#B45309`
 - Untung `#15803D`, rugi `#B91C1C`
 - **Tidak ada tema gelap.**
-- Target sentuh minimal 44×44 px; angka besar dan tebal; satu kolom.
+- Target sentuh minimal 44×44 px.
 
 ---
 
-## 14. Konten Awal (contoh; angka masih perlu ditera ulang saat balancing)
+## 14. Konten Awal
 
 ### 14.1 Profesi
 
@@ -671,69 +539,35 @@ Papan ─┬→ Laporan Keuangan (sheet dari bawah)
 |---|---|---|---|
 | ASN Gol. III/b | 5.900.000 | 3.400.000 | KPR subsidi, motor |
 | Guru honorer | 2.200.000 | 1.800.000 | Utang koperasi |
-| Perawat RSUD | 6.500.000 | 4.100.000 | KPR, paylater |
-| Pedagang pasar | 7.000.000 (fluktuatif) | 4.500.000 | Utang modal harian |
 | Pegawai bank | 11.000.000 | 8.900.000 | KPR besar, mobil, kartu kredit |
-| Kontraktor kecil | 15.000.000 (tak tentu) | 9.000.000 | Utang bank, mobil pickup |
-
-Catatan: gaji sudah termasuk tunjangan, disederhanakan. Angka ini **perlu
-diverifikasi dan disetel ulang saat fase balancing** — fungsinya keseimbangan
-permainan, bukan akurasi regulasi.
 
 Desain: pegawai bank bergaji dua kali lipat ASN tapi **lebih sulit lolos**.
-Ini pelajaran pertama, dan tidak perlu dijelaskan sedikit pun.
-
-### 14.2 Contoh kartu
-
-**Peluang Kecil**
-> **Reksa dana indeks** — setoran Rp 500.000/bulan. Tidak ada arus kas
-> bulanan. Tumbuh pelan. Tidak ada yang menarik dari kartu ini.
-
-**Peluang Besar**
-> **Ruko dekat pasar** — Rp 340 juta, DP Rp 70 juta, sewa bersih
-> Rp 2,8 juta/bulan. Perlu perbaikan atap tahun ketiga.
-
-**Guncang**
-> **Orang tua masuk rumah sakit.** Rp 18 juta, sekarang. Tidak ada pilihan
-> menolak. *(Pemicu: keamanan)*
-
-**Guncang**
-> **Bu Sinta lolos duluan.** "Saya bilang juga apa, harusnya ambil yang
-> kemarin." *(Pemicu: pengakuan)*
-
-**Pasar**
-> **Saham yang Anda tolak 6 giliran lalu naik 210%.** *(Pemicu: kendali)*
 
 ---
 
 ## 15. Keselamatan & Etika
 
 1. Tombol **Lewati** ada di setiap Jeda Batin, tanpa penalti.
-2. Tidak ada notifikasi yang menarik pemain kembali. Tidak ada mekanik
-   pembentuk kebiasaan (streak, energi, pengingat harian).
-3. Tidak ada pembelian dalam aplikasi. Tidak ada iklan. Tidak ada telemetri.
-4. Layar akhir mencantumkan: game ini alat latihan, bukan pengganti kerja
-   batin yang sebenarnya; kalau ada yang berat muncul, tempatnya bukan di sini.
-5. Tidak mengumpulkan data pribadi apa pun. Semua tinggal di HP pemain.
+2. Tidak ada mekanik pembentuk kebiasaan.
+3. Tidak ada pembelian dalam aplikasi, iklan, atau telemetri.
+4. Layar akhir mencantumkan: ini alat latihan, bukan pengganti kerja batin.
+5. Tidak mengumpulkan data pribadi apa pun.
 
 ---
 
-## 16. Rencana Fase Build (untuk Claude Code)
-
-Tiap fase berakhir pada perangkat lunak yang jalan dan bisa diuji. TDD untuk
-seluruh isi `engine/`.
+## 16. Rencana Fase Build
 
 | Fase | Isi | Selesai bila |
 |---|---|---|
-| **0** | Vite + TS + Tailwind + Dexie + PWA + PRNG ber-seed + kerangka event log + tiga pengaman penyimpanan §4.6 | `npm run build` sukses, terpasang di HP, seed sama → keluaran sama, jurnal selamat setelah permainan dihapus |
+| **0** | Scaffold + PRNG + event log + pengaman penyimpanan | Build sukses, seed sama → keluaran sama |
 | **1** | `engine/keuangan.ts` + tes | Semua rumus §5 lulus tes |
-| **2** | Papan, giliran, kartu dasar, laporan keuangan di layar | Satu permainan bisa diselesaikan tanpa emosi/pasar |
-| **3** | Pasar, instrumen, timer bergerak | Harga bergerak saat menimbang; membeku saat Jeda dibuka |
+| **2** | Papan, giliran, kartu dasar, laporan keuangan | Satu permainan bisa diselesaikan |
+| **3** | Pasar, instrumen, timer bergerak | Harga membeku saat Jeda dibuka |
 | **4** | Tiga bot + komentar | Bot main sendiri sampai selesai |
-| **5** | **Sistem 4T**: Suhu Batin, Jeda Batin, Tanam, Tuai tertunda | Panen muncul otomatis dengan dua sisi hasil |
-| **6** | Gerbang Niat, Lingkar Luas, Kartu Kebiasaan Lama | Skor T1 benar-benar mempengaruhi kondisi awal T2 |
-| **7** | Jurnal lintas sesi + ekspor + Ringkasan Akhir dua papan | Jurnal bertahan setelah permainan dihapus |
-| **8** | Balancing angka, aksesibilitas, uji di Android RAM 2 GB | Bisa dimainkan orang lain tanpa dijelaskan |
+| **5** | **Sistem 4T** | Panen muncul otomatis dengan dua sisi hasil |
+| **6** | Gerbang Niat, Lingkar Luas, Kartu Kebiasaan Lama | Skor T1 mempengaruhi kondisi awal T2 |
+| **7** | Jurnal lintas sesi + Ringkasan Akhir dua papan | Jurnal bertahan setelah permainan dihapus |
+| **8** | Balancing, aksesibilitas, uji di Android RAM 2 GB | Bisa dimainkan orang lain tanpa dijelaskan |
 
 **Gerbang:** tiap fase berhenti untuk konfirmasi sebelum lanjut.
 
@@ -741,25 +575,9 @@ seluruh isi `engine/`.
 
 ## 17. Yang Sengaja TIDAK Dibuat (YAGNI)
 
-- Data pasar sungguhan / IHSG langsung — merusak offline-first dan
-  keterulangan, dan membawa implikasi yang tidak dibutuhkan.
-- Multiplayer online — **arsitekturnya sudah disiapkan** (deterministik +
-  event log), tapi tidak dibangun sekarang.
-- Akun, login, cloud sync, papan peringkat.
-- Animasi 3D, model dadu fisika, musik latar.
-- Sistem pencapaian/lencana — bertabrakan dengan Prinsip 2.
+- Data pasar sungguhan, multiplayer online, akun/login/cloud sync,
+  animasi 3D, sistem pencapaian/lencana.
 
 ---
 
-## 18. Yang Masih Terbuka
-
-1. Nama produk final.
-2. Angka profesi §14.1 perlu ditera ulang saat balancing.
-3. Perlukah mode "cepat" 10 menit untuk pemakaian di kelas/pelatihan?
-4. Perlukah ekspor jurnal ke .docx berkop, kalau game ini dipakai untuk
-   pelatihan resmi?
-
----
-
-*Akhir dokumen. Rencana implementasi terperinci disusun terpisah setelah
-dokumen ini disetujui.*
+*Akhir dokumen.*
