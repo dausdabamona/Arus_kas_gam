@@ -7,7 +7,12 @@ import { rupiah } from '../../lib/format';
 import { LembarBawah } from '../ui/LembarBawah';
 import { Tombol } from '../ui/Tombol';
 
-export function KartuPasar() {
+interface Props {
+  /** Waktu berhenti total selagi Jeda Batin terbuka (§8.1). */
+  beku?: boolean;
+}
+
+export function KartuPasar({ beku = false }: Props) {
   const state = usePermainan((t) => t.state);
   const kirim = usePermainan((t) => t.kirim);
   const memproses = usePermainan((t) => t.memproses);
@@ -23,8 +28,7 @@ export function KartuPasar() {
     });
   };
 
-  // beku selalu false di Fase 3; Fase 5 mengalirkan status Jeda Batin ke sini.
-  const { ketukan, detikTersisa } = useTimerPasar({ beku: false, onHabis: lewat });
+  const { ketukan, detikTersisa } = useTimerPasar({ beku, onHabis: lewat });
 
   const instrumen = instrumenId ? cariInstrumen(instrumenId) : undefined;
 

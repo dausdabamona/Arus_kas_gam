@@ -19,6 +19,23 @@ export const NASKAH_TENANG: readonly string[] = [
   'Napas biasa, tiga sampai empat kali. Tidak perlu diatur.',
 ];
 
+/** Dua kali pengukuran suhu: sebelum jeda dan sesudahnya. */
+export const TANYA_SUHU = {
+  sebelum: 'Sepanas apa rasanya sekarang?',
+  sesudah: 'Dan sekarang?',
+  kiri: 'dingin',
+  kanan: 'panas',
+} as const;
+
+/** Tawaran setelah suhu dicatat. Keduanya netral; tidak ada yang dianjurkan. */
+export const TAWARAN_JEDA = {
+  jeda: 'Jeda sebentar',
+  langsung: 'Langsung putuskan',
+} as const;
+
+/** Ketuk, bukan timer. Ini jeda, bukan tekanan baru. */
+export const PETUNJUK_TENANG = 'Ketuk kalau sudah.';
+
 export const TANYA_LOKASI = 'Di bagian tubuh mana rasanya paling terasa?';
 
 /** Laporan badan, bukan pertanyaan batin — salah satu dari dua pengecualian tap. */
@@ -76,6 +93,13 @@ export const NASKAH_PELEPASAN = {
 /** Cabang INFORMASI — bukan urusan batin. */
 export const NASKAH_INFORMASI = 'Ini bukan soal rasa. Ini datanya:';
 
+/** Label panel data di cabang INFORMASI. Angka, bukan tafsir. */
+export const LABEL_DATA = {
+  arusKas: 'Arus kas bulanan',
+  sisaPlafon: 'Sisa plafon pinjaman',
+  totalCicilan: 'Total cicilan bulanan',
+} as const;
+
 /** Cabang KEBIASAAN — langsung ke tindakan, tanpa kalimat. */
 export const NASKAH_KEBIASAAN =
   'Kalau tidak ada yang menolak, tidak perlu digali. Tentukan saja satu langkah terkecilnya.';
@@ -88,6 +112,19 @@ export const NASKAH_TANAM = {
   sekali: 'Sekali saja. Tidak perlu diulang-ulang.',
 } as const;
 
+/**
+ * Label tombol. Sengaja pendek dan datar — tidak ada tombol yang terdengar
+ * lebih benar daripada tombol sebelahnya.
+ */
+export const LABEL_TOMBOL = {
+  catat: 'Catat',
+  lanjut: 'Lanjut',
+  lewati: 'Lewati',
+  simpan: 'Simpan',
+  ya: 'Ya',
+  tidak: 'Tidak',
+} as const;
+
 /** TUAI. Kalimat pemain muncul lagi di sini sebagai kenangan, bukan mantra. */
 export const NASKAH_TUAI = {
   pembuka: (giliran: number) => `${giliran} giliran lalu kamu menulis:`,
@@ -95,4 +132,10 @@ export const NASKAH_TUAI = {
   hasilDalam: 'Hasil di dalam',
   tenang: 'diputuskan dalam keadaan tenang',
   tersulut: 'diputuskan sambil tersulut',
+  /**
+   * Untuk hasil yang memang tidak bisa diukur — guncangan tidak pernah
+   * menawarkan jalur lain, dan aset yang sudah dijual tidak punya nilai
+   * berjalan lagi. Tanda hubung, bukan "Rp 0": nol akan terbaca "impas".
+   */
+  takTerukur: '—',
 } as const;

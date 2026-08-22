@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { reduce, stateAwal, putarUlang } from '../engine/reducer';
-import { db, simpanKejadian, muatKejadian } from '../lib/db';
+import { db, simpanKejadian, muatKejadian, tambahJurnal } from '../lib/db';
 import type { Kejadian } from '../types/kejadian';
 import type { StatePermainan } from '../types/state';
 
@@ -62,6 +62,29 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
     try {
       const kejadian = { ...kejadianBaru, t: nomorKejadian } as Kejadian;
       await simpanKejadian(permainanId, kejadian);
+
+      // Jurnal ditulis dari panen yang sedang terbuka, SEBELUM reduce
+      // menutupnya. Ia hidup di tabel terpisah sejak Fase 0: menghapus
+      // permainan tidak menyentuhnya, karena catatan itu milik pemain,
+      // bukan milik sesi.
+      if (kejadian.tipe === 'TUAI') {
+        const panen = state.panenTerbuka;
+        // Kebutuhan dan hasil dalam selalu terisi lewat alur Jeda; kalau
+        // salah satunya kosong, entri sengaja tidak ditulis daripada
+        // mengarang isi jurnal orang.
+        if (panen && panen.kebutuhan !== null && panen.hasilDalam !== null) {
+          await tambahJurnal({
+            permainanId,
+            dibuatPada: Date.now(),
+            kebutuhan: panen.kebutuhan,
+            kalimat: panen.kalimat,
+            tindakan: panen.tindakan,
+            hasilLuar: kejadian.isi.hasilLuar,
+            hasilDalam: panen.hasilDalam,
+          });
+        }
+      }
+
       set({ state: reduce(state, kejadian), nomorKejadian: nomorKejadian + 1 });
     } finally {
       set({ memproses: false });

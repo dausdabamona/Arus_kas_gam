@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePermainan } from '../hooks/use-permainan';
 import { hitungLaporan, lolosTahapSatu, perluTindakanDarurat } from '../engine/keuangan';
 import { Papan } from '../components/papan/Papan';
@@ -7,6 +7,11 @@ import { GarisArus } from '../components/keuangan/GarisArus';
 import { LaporanKeuangan } from '../components/keuangan/LaporanKeuangan';
 import { BarisBot } from '../components/papan/BarisBot';
 import { KartuPasar } from '../components/pasar/KartuPasar';
+import { KartuGuncangTampil } from '../components/papan/KartuGuncangTampil';
+import { JedaBatin } from '../components/jeda/JedaBatin';
+import { LayarPanen } from '../components/jeda/LayarPanen';
+import { cariKartuGuncang } from '../data/kartu-guncang';
+import { cariInstrumen } from '../data/instrumen';
 import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
 import { LembarBawah } from '../components/ui/LembarBawah';
@@ -19,8 +24,46 @@ export function LayarPapan() {
   const memproses = usePermainan((t) => t.memproses);
   const [laporanTerbuka, setLaporanTerbuka] = useState(false);
   const [utangDipilih, setUtangDipilih] = useState<string | null>(null);
+  const [pemicuSelesai, setPemicuSelesai] = useState<string | null>(null);
+
+  /**
+   * Jeda ditawarkan pada GUNCANG, PELUANG_BESAR, dan tawaran PASAR — tidak
+   * pada PELUANG_KECIL. Godaan kecil memang dibiarkan lewat tanpa upacara,
+   * supaya jeda tidak jadi ritual kosong yang menjemukan.
+   *
+   * Kebutuhan kartu guncang datang dari datanya. Dua pemicu lain tidak punya
+   * pemicu tertulis, jadi dipetakan tetap: uang besar yang keluar mengancam
+   * rasa aman, dan harga yang bergerak sendiri menyentuh rasa kendali.
+   */
+  const pemicu = useMemo(() => {
+    if (!state) return null;
+    if (state.guncangTerbuka) {
+      return {
+        id: `g${state.giliran}:${state.guncangTerbuka.kartuId}`,
+        judul: state.guncangTerbuka.judul,
+        kebutuhan: cariKartuGuncang(state.guncangTerbuka.kartuId).pemicu,
+      };
+    }
+    if (state.kartuTerbuka?.tumpukan === 'PELUANG_BESAR') {
+      return {
+        id: `k${state.giliran}:${state.kartuTerbuka.id}`,
+        judul: state.kartuTerbuka.judul,
+        kebutuhan: 'keamanan' as const,
+      };
+    }
+    if (state.pasarTerbuka) {
+      return {
+        id: `p${state.giliran}:${state.pasarTerbuka}`,
+        judul: cariInstrumen(state.pasarTerbuka)?.nama ?? state.pasarTerbuka,
+        kebutuhan: 'kendali' as const,
+      };
+    }
+    return null;
+  }, [state]);
 
   if (!state) return null;
+
+  const jedaTerbuka = pemicu !== null && pemicu.id !== pemicuSelesai;
 
   const lolos = lolosTahapSatu(hitungLaporan(state.keuangan));
   const darurat = perluTindakanDarurat(state.keuangan);
@@ -48,7 +91,7 @@ export function LayarPapan() {
         <BarisBot bot={state.bot} />
       </div>
 
-      {state.pasarTerbuka && <KartuPasar />}
+      {state.pasarTerbuka && <KartuPasar beku={jedaTerbuka} />}
 
       {darurat && <LembarDarurat />}
 
@@ -82,7 +125,9 @@ export function LayarPapan() {
         </Tombol>
       </div>
 
-      {state.kartuTerbuka && (
+      {state.guncangTerbuka && !jedaTerbuka && <KartuGuncangTampil />}
+
+      {state.kartuTerbuka && !jedaTerbuka && (
         <KartuPeluangTampil
           kartu={state.kartuTerbuka}
           saldoKas={state.keuangan.saldoKas}
@@ -103,6 +148,17 @@ export function LayarPapan() {
       >
         <LaporanKeuangan keuangan={state.keuangan} onPilihLiabilitas={setUtangDipilih} />
       </LembarBawah>
+
+      <LayarPanen />
+
+      {jedaTerbuka && pemicu && (
+        <JedaBatin
+          key={pemicu.id}
+          judul={pemicu.judul}
+          kebutuhan={pemicu.kebutuhan}
+          onSelesai={() => setPemicuSelesai(pemicu.id)}
+        />
+      )}
 
       <LembarPelunasan liabilitasId={utangDipilih} onTutup={() => setUtangDipilih(null)} />
     </main>
