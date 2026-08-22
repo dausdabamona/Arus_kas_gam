@@ -95,7 +95,7 @@ const PANEN_MAKS = 10;
  * Jangan disetel dari tebakan. Ia disetel di Fase 8, dari orang sungguhan yang
  * menggeser slidernya.
  */
-const AMBANG_REDA = 3;
+export const AMBANG_REDA = 3;
 
 const EMOSI_KOSONG: KeadaanEmosi = {
   suhuSebelum: null,

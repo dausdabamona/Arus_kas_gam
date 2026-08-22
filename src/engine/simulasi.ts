@@ -1,4 +1,4 @@
-import { reduce, stateAwal } from './reducer';
+import { reduce, stateAwal, AMBANG_REDA } from './reducer';
 import {
   perluTindakanDarurat,
   hitungLaporan,
@@ -16,7 +16,8 @@ import {
   type GayaDarurat,
 } from './kebijakan';
 import type { StatePermainan } from '../types/state';
-import type { Kejadian } from '../types/kejadian';
+import { cariKartuGuncang } from '../data/kartu-guncang';
+import type { Kejadian, KebutuhanId } from '../types/kejadian';
 
 export type Kebijakan =
   | 'hati-hati'
@@ -25,6 +26,34 @@ export type Kebijakan =
   | 'pasar-indeks'
   | 'pasar-saham'
   | 'pasar-panik';
+
+/**
+ * Bagaimana pelari menghadapi Jeda Batin. ALAT UKUR, bukan aturan permainan —
+ * setara `paksaKebiasaan`.
+ *
+ * Bawaannya 'abaikan', dan itu WAJIB: seluruh angka Invarian 1-6 disetel di
+ * atas pelari yang tidak pernah menyentuh suhu maupun jeda, dan mengubah
+ * bawaannya akan menggeser setiap angka itu diam-diam.
+ *
+ * PERINGATAN METODOLOGIS. Tiga undian mesin dikunci pada `kejadian.t` (dadu,
+ * kartu guncang, jadwal panen). Menyisipkan kejadian suhu dan jeda menggeser
+ * seluruh t sesudahnya, jadi 'reda' BUKAN "permainan yang sama ditambah jeda"
+ * — ia permainan yang lain sama sekali. Membandingkan dua gaya jeda berarti
+ * membandingkan dua POPULASI benih, bukan sepasang permainan kembar. Kekeliruan
+ * yang sama pernah membuat "pemain tanpa refleks-panik" diam-diam berarti
+ * "pemain dengan dua kartu lainnya" (lihat `paksaKebiasaan`).
+ */
+export type GayaJeda = 'abaikan' | 'lewati' | 'reda' | 'tetap';
+
+/**
+ * Suhu awal yang dipakai pelari. Tinggi, supaya 'reda' selalu punya ruang turun
+ * berapa pun AMBANG_REDA disetel nanti di Fase 8.
+ *
+ * Turunnya diambil dari AMBANG_REDA yang asli, bukan dari salinan angka 3.
+ * Salinan akan diam-diam berhenti berarti "reda" begitu ambangnya digeser, dan
+ * pelari akan melaporkan pemain tenang yang menurut mesin tidak tenang.
+ */
+const SUHU_PELARI = 8;
 
 export interface HasilSimulasi {
   giliran: number;
@@ -65,9 +94,9 @@ export interface HasilSimulasi {
   kebiasaanDibawa: string[];
   kartuKebiasaanDibawa: number;
   /**
-   * Berapa kebiasaan yang berhasil dilepas. Pelari tidak pernah mengambil Jeda,
-   * jadi angka ini SELALU nol — dan itu memang yang diukur: berat refleks yang
-   * tidak pernah dilatih.
+   * Berapa kebiasaan yang berhasil dilepas. Dengan `gayaJeda` bawaan pelari
+   * tidak pernah mengambil Jeda, jadi angka ini nol — dan itu memang yang
+   * diukur di sana: berat refleks yang tidak pernah dilatih.
    */
   kebiasaanTerlepas: number;
   state: StatePermainan;
@@ -107,6 +136,13 @@ export function jalankanSimulasi(opsi: {
    * mengukur pasangan kartunya, bukan kartu yang ditanyakan.
    */
   paksaKebiasaan?: string[];
+  /**
+   * Cara pelari menghadapi Jeda Batin. Tanpa ini `keputusanBertekanan` selalu
+   * nol, papan Kemerdekaan selalu "belum teruji", dan DUA dari empat kuadran
+   * §10.3 mustahil dicapai — terukur: 300 permainan, hanya 'belum-jalan' dan
+   * 'kaya-terikat' yang pernah menyala.
+   */
+  gayaJeda?: GayaJeda;
 }): HasilSimulasi {
   // Bot dimatikan di jalur simulasi biasa: simulator mengukur ekonomi pemain,
   // dan menjalankan tiga dunia tambahan tiap giliran hanya memperlambat.
@@ -142,6 +178,34 @@ export function jalankanSimulasi(opsi: {
   const kirim = (kejadian: Omit<Kejadian, 't'>) => {
     state = reduce(state, { ...kejadian, t: t++ } as Kejadian);
     catat();
+  };
+
+  /**
+   * Satu putaran Jeda lengkap sebelum sebuah keputusan bertekanan. Dipanggil
+   * hanya pada pemicu yang benar-benar membuka Jeda di layar (§9.1): GUNCANG,
+   * PELUANG_BESAR, dan tawaran PASAR — bukan PELUANG_KECIL. Pelari yang berjeda
+   * di tempat yang tidak pernah menawarkan jeda mengukur dunia yang lain.
+   */
+  const berjeda = (kebutuhan: KebutuhanId) => {
+    const gaya = opsi.gayaJeda ?? 'abaikan';
+    if (gaya === 'abaikan') return;
+
+    kirim({ tipe: 'SUHU_BATIN', isi: { nilai: SUHU_PELARI, fase: 'sebelum' } });
+    if (gaya === 'lewati') {
+      // Tanpa penalti (§15.1). Tercatat sebagai keputusan bertekanan, tidak
+      // pernah sebagai keputusan tenang — persis seperti pemain yang melewati.
+      kirim({ tipe: 'LEWATI_JEDA', isi: { pemicuId: `pelari-${t}` } });
+      kirim({ tipe: 'SUHU_BATIN', isi: { nilai: SUHU_PELARI, fase: 'sesudah' } });
+      return;
+    }
+    kirim({
+      tipe: 'JEDA_BATIN',
+      isi: { lokasiTubuh: 'dada', jenisTemuan: 'emosi', kebutuhan },
+    });
+    kirim({
+      tipe: 'SUHU_BATIN',
+      isi: { nilai: gaya === 'reda' ? SUHU_PELARI - AMBANG_REDA : SUHU_PELARI, fase: 'sesudah' },
+    });
   };
 
   /** Diukur tepat di sekitar satu lemparan dadu, dari selisih kas yang nyata. */
@@ -189,13 +253,16 @@ export function jalankanSimulasi(opsi: {
 
     // Guncang ditutup, tidak dilewati. Pelari yang melempar dadu menembus
     // kartu guncang mengukur dunia yang berbeda dari yang dimainkan orang,
-    // dan angkanya bohong. Suhu dan jeda sengaja tidak disentuh: yang diukur
-    // di sini keuangan, bukan batin.
+    // dan angkanya bohong. Suhu dan jeda disentuh hanya bila `gayaJeda`
+    // memintanya; bawaannya tetap tidak menyentuh apa pun.
     if (state.guncangTerbuka) {
+      berjeda(cariKartuGuncang(state.guncangTerbuka.kartuId).pemicu);
       kirim({ tipe: 'TUTUP_GUNCANG', isi: { kartuId: state.guncangTerbuka.kartuId } });
     }
 
     if (state.kartuTerbuka) {
+      // Pemetaan §9.1, sama dengan yang dipakai layar papan.
+      if (state.kartuTerbuka.tumpukan === 'PELUANG_BESAR') berjeda('keamanan');
       kirim({
         tipe: 'PUTUSKAN',
         isi: {
@@ -206,6 +273,7 @@ export function jalankanSimulasi(opsi: {
     }
 
     if (state.pasarTerbuka) {
+      berjeda('kendali');
       const { aksi, unit, ketukan } = putuskanPasar(
         state,
         hargaGiliranLalu,
