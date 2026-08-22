@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { reduce, stateAwal, putarUlang } from '../engine/reducer';
-import { db, simpanKejadian, muatKejadian, tambahJurnal } from '../lib/db';
+import { db, simpanKejadian, muatKejadian, tambahJurnal, VERSI_LOG } from '../lib/db';
+import { PESAN_LOG_USANG } from '../data/naskah-sistem';
 import type { Kejadian } from '../types/kejadian';
 import type { StatePermainan } from '../types/state';
 
@@ -17,6 +18,8 @@ interface TokoPermainan {
   nomorKejadian: number;
   /** Benar selagi satu kejadian sedang ditulis. Menjaga dari ketukan ganda. */
   memproses: boolean;
+  /** Pesan tenang saat sebuah permainan tidak bisa dimuat. Null bila tidak ada. */
+  galatMuat: string | null;
   mulai: (seed: string, profesiId: string) => Promise<void>;
   kirim: (kejadian: KejadianBaru) => Promise<void>;
   muat: (permainanId: string) => Promise<void>;
@@ -27,6 +30,7 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
   permainanId: null,
   nomorKejadian: 0,
   memproses: false,
+  galatMuat: null,
 
   async mulai(seed, profesiId) {
     if (get().memproses) return;
@@ -41,10 +45,11 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
         profesiId,
         dibuatPada: Date.now(),
         status: 'berjalan',
+        versiLog: VERSI_LOG,
       });
       await simpanKejadian(permainanId, awal);
 
-      set({ state: stateAwal(seed, profesiId), permainanId, nomorKejadian: 1 });
+      set({ state: stateAwal(seed, profesiId), permainanId, nomorKejadian: 1, galatMuat: null });
     } finally {
       set({ memproses: false });
     }
@@ -92,11 +97,21 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
   },
 
   async muat(permainanId) {
+    // Aturan mesin yang berubah membuat log lama tidak setara: log yang sama
+    // memberi state yang berbeda. Memuatnya dan diam-diam menampilkan angka
+    // yang salah jauh lebih buruk daripada menolak dengan terang.
+    const baris = await db.permainan.get(permainanId);
+    if (!baris || (baris.versiLog ?? 1) !== VERSI_LOG) {
+      set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: PESAN_LOG_USANG });
+      return;
+    }
+
     const daftar = await muatKejadian(permainanId);
     set({
       state: putarUlang(daftar),
       permainanId,
       nomorKejadian: daftar.length,
+      galatMuat: null,
     });
   },
 }));

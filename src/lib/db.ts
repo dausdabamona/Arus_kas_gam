@@ -1,12 +1,28 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Kejadian, KebutuhanId } from '../types/kejadian';
 
+/**
+ * Versi skema event log. Dinaikkan setiap kali aturan mesin berubah sedemikian
+ * rupa sehingga log yang sama menghasilkan state yang berbeda — bukan setiap
+ * kali ada bidang baru.
+ *
+ * 1 -> 2: penjualan aset diselesaikan neto (utang melekat lunas lebih dulu,
+ * ekuitas <= 0 ditolak). Log lama yang diputar ulang di mesin baru memberi kas
+ * lebih kecil, cicilan yang lenyap, dan aset terbenam yang tak lagi terjual.
+ *
+ * Potong bersih dilakukan sekarang justru karena belum ada pengguna nyata;
+ * setelah Fase 8, harganya migrasi sungguhan.
+ */
+export const VERSI_LOG = 2;
+
 export interface BarisPermainan {
   id: string;
   seed: string;
   profesiId: string;
   dibuatPada: number;
   status: 'berjalan' | 'selesai';
+  /** Kosong pada baris yang direkam sebelum kolom ini ada — setara versi 1. */
+  versiLog?: number;
 }
 
 export interface BarisKejadian {
