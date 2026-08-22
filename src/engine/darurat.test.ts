@@ -86,7 +86,9 @@ describe('invarian konvergensi §5.4', () => {
 
 describe('tuasTersedia', () => {
   it('menawarkan hemat dan pinjam saat belum punya aset', () => {
-    expect(tuasTersedia(guru())).toEqual(expect.arrayContaining(['hemat', 'pinjam']));
+    // Daftar penuh, bukan arrayContaining: yang perlu dijaga justru 'jual'
+    // yang TIDAK boleh ada di sini, dan arrayContaining tidak melihatnya.
+    expect(tuasTersedia(guru())).toEqual(['pinjam', 'hemat']);
   });
 
   it('kosong saat ketiga tuas habis — inilah syarat bangkrut', () => {

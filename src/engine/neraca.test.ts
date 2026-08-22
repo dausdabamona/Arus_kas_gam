@@ -93,6 +93,12 @@ describe('integritas referensial aset-utang', () => {
    * jalur PENGHAPUSAN aset benar-benar dijalani — dan dengan urutan tuas sadar
    * ia tidak pernah dijalani sama sekali.
    */
+  /**
+   * Profesinya bukan pilihan bebas: sapuan simulasi menunjukkan guru-honorer
+   * TIDAK PERNAH membeli aset berutang (kasnya tak pernah menutup uang muka
+   * kartu berutang), jadi pemeriksaan ini akan hampa di sana — nol penjualan
+   * berutang di kedua urutan tuas. asn-3b dan pegawai-bank membelinya.
+   */
   it('benar-benar menjalani penjualan aset berutang, bukan lulus karena tak pernah menjual', () => {
     let penjualanBerutang = 0;
     for (const seed of SEED) {
@@ -303,5 +309,144 @@ describe('ekuitas negatif bukan tuas', () => {
       ],
     };
     expect(tuasTersedia(mentok)).toEqual([]);
+  });
+});
+
+describe('pilihan aset bawaan saat tuas jual ditarik', () => {
+  /**
+   * Celah yang hanya tertangkap secara kebetulan. `tuasTersedia` menyatakan
+   * 'jual' tersedia karena SEBAGIAN aset bisa dijual; kalau reducer lalu
+   * selalu mencoba aset[0] yang kebetulan terbenam, penjualan ditolak, state
+   * tak berubah, dan pemain menggantung di krisis yang tuasnya terlihat ada.
+   *
+   * Sebelum tes ini, satu-satunya penjaganya adalah simulasi 'serakah selalu
+   * berakhir' — yang menangkapnya lewat kemacetan 1000 giliran pada satu seed
+   * dari lima belas kombinasi. Setelan ekonomi yang bergeser sedikit saja
+   * membuat penjaga itu diam, dan bugnya kembali tanpa suara.
+   */
+  function terbenamDuluBaruSehat(): StatePermainan {
+    const dasar = stateAwal('uji-pilih', 'asn-3b');
+    return {
+      ...dasar,
+      bot: [],
+      keuangan: {
+        ...dasar.keuangan,
+        saldoKas: -2_000_000,
+        kaliBerhemat: MAKS_BERHEMAT,
+        aset: [
+          { id: 'motor-0', nama: 'Motor sewa', nilai: 4_000_000, arusKasBulanan: 500_000 },
+          { id: 'emas-0', nama: 'Emas', nilai: 9_000_000, arusKasBulanan: 0 },
+        ],
+        liabilitas: [
+          ...dasar.keuangan.liabilitas,
+          {
+            id: 'utang-motor-0',
+            nama: 'Utang motor sewa',
+            sisaUtang: 9_000_000,
+            cicilanBulanan: 400_000,
+            pokokAwal: 9_000_000,
+            asetId: 'motor-0',
+          },
+          {
+            id: 'darurat-penuh',
+            nama: 'Pinjaman darurat',
+            sisaUtang: dasar.keuangan.gajiBersihBulanan * PLAFON_PINJAMAN_GAJI,
+            cicilanBulanan: 0,
+            pokokAwal: dasar.keuangan.gajiBersihBulanan * PLAFON_PINJAMAN_GAJI,
+            bungaBulanan: 0.02,
+          },
+        ],
+      },
+    };
+  }
+
+  it('melewati aset terbenam dan menjual yang benar-benar bisa dijual', () => {
+    const sebelum = terbenamDuluBaruSehat();
+    // Prasyarat: tuas jual memang satu-satunya yang tersisa, dan aset PERTAMA
+    // adalah yang terbenam — kalau tidak, tes ini tidak menguji apa pun.
+    expect(tuasTersedia(sebelum.keuangan)).toEqual(['jual']);
+    expect(ekuitasAset(sebelum.keuangan, sebelum.keuangan.aset[0].id)).toBeLessThan(0);
+
+    const sesudah = reduce(sebelum, { t: 1, tipe: 'TINDAKAN_DARURAT', isi: {} });
+
+    expect(sesudah.keuangan.aset.map((a) => a.id)).toEqual(['motor-0']);
+    expect(sesudah.keuangan.saldoKas).toBeGreaterThan(sebelum.keuangan.saldoKas);
+  });
+
+  it('tidak menggantung: state benar-benar berubah, bukan dikembalikan apa adanya', () => {
+    const sebelum = terbenamDuluBaruSehat();
+    expect(reduce(sebelum, { t: 1, tipe: 'TINDAKAN_DARURAT', isi: {} })).not.toBe(sebelum);
+  });
+});
+
+describe('pemanggil hargaJual di masa depan', () => {
+  /**
+   * Belum ada pemanggil `hargaJual` di jalur permainan — hanya tes. Tapi
+   * Ringkasan Akhir Fase 7 kemungkinan memanggilnya, dan pemanggil yang
+   * mengira ia menerima HARGA PENUH akan salah tanpa satu pun tes lain
+   * menyala. Tes ini berdiri di tempat pemanggil itu nanti.
+   */
+  function denganUtangMelekat(): KondisiKeuangan {
+    const dasar = stateAwal('uji-harga', 'asn-3b').keuangan;
+    return {
+      ...dasar,
+      saldoKas: 1_000_000,
+      aset: [{ id: 'ruko-0', nama: 'Ruko', nilai: 300_000_000, arusKasBulanan: 2_800_000 }],
+      liabilitas: [
+        ...dasar.liabilitas,
+        {
+          id: 'utang-ruko-0',
+          nama: 'Utang Ruko',
+          sisaUtang: 120_000_000,
+          cicilanBulanan: 1_500_000,
+          pokokAwal: 120_000_000,
+          asetId: 'ruko-0',
+        },
+      ],
+    };
+  }
+
+  it('mengurangi hargaJual dengan utang melekat, bukan menyerahkannya penuh', () => {
+    const sebelum = denganUtangMelekat();
+    const sesudah = jualAset(sebelum, 'ruko-0', 260_000_000);
+    expect(sesudah.saldoKas).toBe(sebelum.saldoKas + (260_000_000 - 120_000_000));
+    expect(sesudah.saldoKas).not.toBe(sebelum.saldoKas + 260_000_000);
+  });
+
+  it('menolak hargaJual yang tidak menutup utang melekatnya', () => {
+    const sebelum = denganUtangMelekat();
+    expect(jualAset(sebelum, 'ruko-0', 100_000_000)).toEqual(sebelum);
+  });
+
+  it('membuang utang melekat juga pada jalur hargaJual', () => {
+    const sesudah = jualAset(denganUtangMelekat(), 'ruko-0', 260_000_000);
+    expect(sesudah.liabilitas.some((l) => l.asetId === 'ruko-0')).toBe(false);
+  });
+});
+
+describe('tuas yang ditawarkan selalu benar-benar bekerja', () => {
+  /**
+   * Kesepakatan antara KETERSEDIAAN dan TINDAKAN. Sebelum tambalan ini keduanya
+   * bisa berselisih: `tuasTersedia` menawarkan 'jual' karena ada aset
+   * ber-ekuitas positif, sementara reducer mencoba aset lain yang terbenam.
+   * Sapuan simulasi mencatat, dengan urutan panik, tuas jual ditawarkan 32/33/40
+   * kali dan terjadi penjualan 32/33/40 kali — cocok persis di ketiga profesi.
+   * Tes ini menuntut kecocokan itu bertahan, bukan menunggu kemacetan
+   * memberitahunya.
+   */
+  it('setiap tuas jual yang ditawarkan mengubah keadaan, bukan ditolak diam-diam', () => {
+    let ditawarkan = 0;
+    for (const seed of ['n1', 'n2', 'n3', 'n4', 'n5']) {
+      const semua = setiapState(seed, 'asn-3b', 300);
+      for (let i = 1; i < semua.length; i++) {
+        const sebelum = semua[i - 1];
+        if (!tuasTersedia(sebelum.keuangan).includes('jual')) continue;
+        if (!perluTindakanDarurat(sebelum.keuangan)) continue;
+        ditawarkan++;
+        // Ada tuas dan ada krisis: state SETELAHNYA tidak boleh sama persis.
+        expect(semua[i], 'tuas ditawarkan tapi tidak ada yang berubah').not.toBe(sebelum);
+      }
+    }
+    expect(ditawarkan, 'tuas jual tidak pernah ditawarkan — tes ini hampa').toBeGreaterThan(0);
   });
 });
