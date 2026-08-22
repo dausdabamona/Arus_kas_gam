@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import * as NASKAH_JEDA from '../../data/naskah-jeda';
 import * as NASKAH_GERBANG from '../../data/naskah-gerbang';
 import * as NASKAH_AKHIR from '../../data/naskah-akhir';
+import * as NASKAH_JURNAL from '../../data/naskah-jurnal';
 
 const KOMPONEN = [
   'src/components/jeda/JedaBatin.tsx',
@@ -14,6 +15,7 @@ const KOMPONEN = [
   // Layar paling berbahaya di permainan ini justru yang paling lama tanpa
   // penjaga: ia dibaca sebagai penilaian atas seorang manusia.
   'src/screens/LayarAkhir.tsx',
+  'src/screens/LayarJurnal.tsx',
 ];
 
 /** Semua kalimat yang benar-benar ada di naskah, untuk dibandingkan. */
@@ -28,6 +30,7 @@ const NASKAH_SAH = [
   ...kumpulkan(NASKAH_JEDA),
   ...kumpulkan(NASKAH_GERBANG),
   ...kumpulkan(NASKAH_AKHIR),
+  ...kumpulkan(NASKAH_JURNAL),
 ];
 
 /**

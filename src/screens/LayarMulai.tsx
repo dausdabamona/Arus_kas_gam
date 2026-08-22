@@ -11,14 +11,21 @@ import {
 } from '../data/naskah-sistem';
 import { rupiah } from '../lib/format';
 import { Tombol } from '../components/ui/Tombol';
+import { LayarJurnal } from './LayarJurnal';
+import { JUDUL_JURNAL } from '../data/naskah-jurnal';
 
 export function LayarMulai() {
   const mulai = usePermainan((t) => t.mulai);
   const memproses = usePermainan((t) => t.memproses);
   const galatMuat = usePermainan((t) => t.galatMuat);
   const [benih, setBenih] = useState(benihBaru);
+  const [jurnalTerbuka, setJurnalTerbuka] = useState(false);
 
   const sah = benihSah(benih);
+
+  // Jurnal punya jalannya sendiri dari layar mulai, sebelum permainan apa pun
+  // dimulai: catatan itu milik pemain, bukan milik sesi yang sedang berjalan.
+  if (jurnalTerbuka) return <LayarJurnal onTutup={() => setJurnalTerbuka(false)} />;
 
   return (
     <main className="mx-auto max-w-md p-5">
@@ -101,6 +108,12 @@ export function LayarMulai() {
           </li>
         ))}
       </ul>
+
+      <div className="mt-6">
+        <Tombol jenis="kedua" lebarPenuh onClick={() => setJurnalTerbuka(true)}>
+          {JUDUL_JURNAL}
+        </Tombol>
+      </div>
 
       <p className="mt-6 text-xs text-tinta/50">
         Simulasi untuk latihan. Angka disederhanakan dan bukan saran investasi.
