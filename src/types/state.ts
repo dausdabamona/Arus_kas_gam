@@ -26,6 +26,13 @@ export interface StatePermainan {
   kartuTerbuka: KartuPeluang | null;
   /** Harga penutup tiap instrumen pada giliran berjalan. */
   hargaPasar: Record<string, number>;
+  /**
+   * Harga penutup giliran SEBELUMNYA. Diperlukan karena aset dinilai ulang tiap
+   * giliran, sehingga nilai/unit selalu sama dengan harga sekarang — tanpa
+   * pembanding ini, "turun 20%" tidak punya acuan apa pun. Cacat yang sama
+   * pernah membuat gaya pasar 'panik' tidak pernah menyala di Fase 3.
+   */
+  hargaPasarLalu: Record<string, number>;
   /** Instrumen yang sedang ditawarkan, menunggu keputusan. Null bila tidak ada. */
   pasarTerbuka: string | null;
   /**
@@ -58,6 +65,12 @@ export interface StatePermainan {
    * lepasnya. BUKAN daftar hukuman: tiap kartu punya jalan keluar (§7.2).
    */
   kebiasaan: KebiasaanBerjalan[];
+  /**
+   * Id refleks yang baru saja membalik keputusan pemain, supaya layar bisa
+   * menjelaskan apa yang terjadi. Null bila keputusan terakhir murni milik
+   * pemain. Menjelaskan, bukan menuduh.
+   */
+  refleksMengambilAlih: string | null;
   /** Dunia tiga bot. Kosong di dalam dunia bot itu sendiri — tidak bersarang. */
   bot: BotBerjalan[];
 }
@@ -66,6 +79,14 @@ export interface KebiasaanBerjalan {
   id: string;
   kemajuan: number;
   lepas: boolean;
+  /**
+   * Khusus refleks-banding: apakah lawan SEDANG unggul pada pemeriksaan
+   * terakhir. Ini penanda pemicu diskrit — kenaikan gaya hidup menyala saat
+   * penanda berubah dari salah ke benar, bukan selama ia benar. Tanpa itu,
+   * pengeluaran naik 10% tiap giliran selama bot unggul dan meledak; kerabat
+   * persis cacat Amal-tanpa-batas dan spiral utang.
+   */
+  lawanUnggul: boolean;
 }
 
 export interface RiwayatDitolak {

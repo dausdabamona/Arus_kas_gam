@@ -24,6 +24,7 @@ import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { KARTU_GUNCANG, cariKartuGuncang } from '../data/kartu-guncang';
 import { KARTU_KEBIASAAN } from '../data/kartu-kebiasaan';
 import { ringkasKemerdekaan } from './kemerdekaan';
+import { refleksMemaksa, majukanPelepasan, terapkanBanding } from './kebiasaan';
 import { PROFIL_BOT } from '../data/bot';
 import { cariProfesi } from '../data/profesi';
 import type { Kejadian } from '../types/kejadian';
@@ -116,6 +117,7 @@ export function stateAwal(seed: string, profesiId: string, denganBot = true): St
     status: 'berjalan',
     keuangan: kondisiAwal,
     hargaPasar: hargaAwalSemua(),
+    hargaPasarLalu: hargaAwalSemua(),
     skalaGuncangan: Math.max(1, arusKasBulanan(kondisiAwal)),
     kartuTerbuka: null,
     pasarTerbuka: null,
@@ -128,6 +130,7 @@ export function stateAwal(seed: string, profesiId: string, denganBot = true): St
     tahap: 'harian',
     niat: null,
     kebiasaan: [],
+    refleksMengambilAlih: null,
     bot: denganBot ? botAwal(seed, (s, p) => stateAwal(s, p, false)) : [],
   };
 }
@@ -247,6 +250,24 @@ function objekPemicu(state: StatePermainan): StatePermainan['tanamTertunda'][num
   return null;
 }
 
+
+/**
+ * Imbal hasil tahunan sebuah kartu peluang, dipakai refleks-kejar. Tahunan,
+ * bukan bulanan: §7.2 menulis ">30%", dan angka bulanan sebesar itu tidak
+ * pernah ada di data mana pun.
+ */
+function imbalTahunan(kartu: KartuPeluang): number {
+  return kartu.harga === 0 ? 0 : (kartu.arusKasBulanan * 12) / kartu.harga;
+}
+
+/** Seberapa dalam sebuah instrumen turun sejak giliran lalu. */
+function turunSejakGiliranLalu(state: StatePermainan, instrumenId: string): number {
+  const lalu = state.hargaPasarLalu[instrumenId];
+  const sekarang = state.hargaPasar[instrumenId];
+  if (!lalu || !sekarang) return 0;
+  return (lalu - sekarang) / lalu;
+}
+
 /** Menjalankan efek petak tempat pemain mendarat. */
 function efekPetak(state: StatePermainan, prng: Prng): StatePermainan {
   const petak = petakDi(state.posisi);
@@ -356,6 +377,7 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         posisi: posisiSetelah(state.posisi, mata),
         riwayatDadu: [...state.riwayatDadu, mata],
         hargaPasar: hargaBaru,
+        hargaPasarLalu: state.hargaPasar,
         keuangan: nilaiUlangAsetKartu(
           nilaiUlangAsetPasar(
             { ...state.keuangan, saldoKas: state.keuangan.saldoKas + arus * gajian },
@@ -395,7 +417,7 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
       // bersinggungan dengan deret pemain.
       if (setelahEfek.bot.length === 0) return setelahEfek;
 
-      return {
+      return terapkanBanding({
         ...setelahEfek,
         bot: setelahEfek.bot.map((b) => {
           const maju = majukanBot(b, kejadian.t, reduce);
@@ -415,11 +437,31 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
           const kalimat = komentarUntuk(state.seed, kejadian.t, b.id, momen);
           return { ...sesudah, komentar: kalimat ?? sesudah.komentar };
         }),
-      };
+      });
     }
 
     case 'PUTUSKAN': {
       const kartu = cariKartu(kejadian.isi.kartuId);
+
+      // Refleks kejar mengambil alih hanya di Lingkar Luas, hanya saat pemain
+      // menolak tawaran yang imbal hasilnya melampaui ambang. Keputusan yang
+      // searah refleks berjalan normal — tidak ada yang perlu dibalik.
+      const paksa =
+        kartu && state.tahap === 'luas' && kejadian.isi.pilihan === 'tolak'
+          ? refleksMemaksa(state.kebiasaan, { jenis: 'kartu', imbalPersen: imbalTahunan(kartu) })
+          : { dipaksa: false as const };
+
+      if (kartu && paksa.dipaksa) {
+        // Barangnya TIDAK masuk riwayat ditolak: pemain tidak benar-benar
+        // menolaknya, tangannya yang bergerak duluan.
+        return hitungSkor({
+          ...state,
+          keuangan: ambilKartu(state.keuangan, kartu),
+          kartuTerbuka: null,
+          refleksMengambilAlih: paksa.kartuId ?? null,
+        });
+      }
+
       if (!kartu || kejadian.isi.pilihan === 'tolak') {
         // Yang dilewati disimpan lengkap dengan nilainya saat itu — bahan
         // pemicu menyesal, dan satu-satunya cara Tuai bisa mengukur jalan
@@ -435,18 +477,58 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
               },
             ]
           : state.riwayatDitolak;
-        return hitungSkor({ ...state, kartuTerbuka: null, riwayatDitolak: riwayat });
+        // Penolakan yang diambil dalam keadaan tenang melatih refleks kejar.
+        const tenang =
+          state.emosi.jedaDiambil &&
+          state.emosi.suhuSebelum !== null &&
+          state.emosi.suhuSesudah !== null &&
+          state.emosi.suhuSesudah <= state.emosi.suhuSebelum - AMBANG_REDA;
+
+        return hitungSkor({
+          ...state,
+          kartuTerbuka: null,
+          riwayatDitolak: riwayat,
+          refleksMengambilAlih: null,
+          kebiasaan:
+            kartu && tenang ? majukanPelepasan(state.kebiasaan, 'tolak-tenang') : state.kebiasaan,
+        });
       }
       return hitungSkor({
         ...state,
         keuangan: ambilKartu(state.keuangan, kartu),
         kartuTerbuka: null,
+        refleksMengambilAlih: null,
       });
     }
 
     case 'TRANSAKSI_PASAR': {
       const { instrumenId, aksi, unit, ketukan } = kejadian.isi;
       const instrumen = cariInstrumen(instrumenId);
+
+      // Refleks panik melepas SELURUH unit begitu harga jatuh melampaui ambang,
+      // apa pun yang ditekan pemain. Ia dijalankan sebagai penjualan biasa,
+      // lewat jalur yang sama, supaya tidak ada aritmetika kembar.
+      if (instrumen && state.tahap === 'luas' && aksi !== 'jual') {
+        const paksa = refleksMemaksa(state.kebiasaan, {
+          jenis: 'pasar',
+          turunPersen: turunSejakGiliranLalu(state, instrumenId),
+        });
+        const dimilikiSekarang =
+          state.keuangan.aset.find((a) => a.instrumenId === instrumenId)?.unit ?? 0;
+
+        if (paksa.dipaksa && dimilikiSekarang > 0) {
+          return {
+            ...reduce(
+              { ...state, kebiasaan: state.kebiasaan },
+              {
+                ...kejadian,
+                isi: { instrumenId, aksi: 'jual', unit: dimilikiSekarang, ketukan },
+              },
+            ),
+            refleksMengambilAlih: paksa.kartuId ?? null,
+          };
+        }
+      }
       if (!instrumen || aksi === 'lewat' || unit <= 0) {
         const riwayat =
           instrumen && aksi === 'lewat'
@@ -462,7 +544,12 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
                 },
               ]
             : state.riwayatDitolak;
-        return hitungSkor({ ...state, pasarTerbuka: null, riwayatDitolak: riwayat });
+        return hitungSkor({
+          ...state,
+          pasarTerbuka: null,
+          riwayatDitolak: riwayat,
+          refleksMengambilAlih: null,
+        });
       }
 
       // Harga dihitung ulang dari ketukan, tidak pernah diambil dari isi
@@ -580,11 +667,26 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
             : { ...state.emosi, suhuSesudah: kejadian.isi.nilai },
       };
 
-    case 'JEDA_BATIN':
+    case 'JEDA_BATIN': {
+      // Jeda yang diambil di konteks yang cocok itulah latihannya. Refleks yang
+      // memaksa tetap membuka jalur ini — di situ pemain melepasnya.
+      const pasarSedangTurun =
+        state.pasarTerbuka !== null && turunSejakGiliranLalu(state, state.pasarTerbuka) > 0;
+
+      let kebiasaan = state.kebiasaan;
+      if (state.tahap === 'luas') {
+        if (pasarSedangTurun) kebiasaan = majukanPelepasan(kebiasaan, 'jeda-pasar-turun');
+        if (kejadian.isi.kebutuhan === 'pengakuan') {
+          kebiasaan = majukanPelepasan(kebiasaan, 'jeda-pengakuan');
+        }
+      }
+
       return {
         ...state,
+        kebiasaan,
         emosi: { ...state.emosi, jedaDiambil: true, kebutuhan: kejadian.isi.kebutuhan },
       };
+    }
 
     case 'LEWATI_JEDA':
       // Tanpa penalti: tidak ada penghitung yang turun, tidak ada bendera yang
@@ -640,7 +742,7 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
       return {
         ...state,
         tahap: 'luas',
-        kebiasaan: terpilih.map((k) => ({ id: k.id, kemajuan: 0, lepas: false })),
+        kebiasaan: terpilih.map((k) => ({ id: k.id, kemajuan: 0, lepas: false, lawanUnggul: false })),
       };
     }
 

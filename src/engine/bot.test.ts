@@ -81,6 +81,83 @@ describe('INVARIAN ISOLASI — bot tidak pernah menyentuh pemain', () => {
 });
 
 /**
+ * BATAS INVARIAN ISOLASI, DINYATAKAN TERANG-TERANGAN.
+ *
+ * refleks-banding (§7.2) menaikkan pengeluaran pemain tiap kali bot melampaui
+ * kekayaannya. Itu berarti keadaan bot menggerakkan UANG pemain — satu-satunya
+ * tempat di seluruh mesin yang begitu, dan memang itu inti kartunya: iri butuh
+ * orang lain yang terlihat. Isolasi bit-demi-bit karena itu TIDAK berlaku untuk
+ * pemain yang sedang membawa kartu ini di Lingkar Luas.
+ *
+ * Yang tetap dijaga, dan diuji di sini:
+ *   1. Isolasi penuh di Lingkar Harian, apa pun yang terjadi.
+ *   2. Isolasi penuh di Lingkar Luas untuk pemain tanpa refleks-banding.
+ *   3. Pengecualiannya tunggal: dengan refleks-banding, yang berbeda hanya
+ *      pengeluaran tetap dan penanda kartunya — tidak ada jalur kedua.
+ */
+describe('BATAS ISOLASI — refleks-banding satu-satunya pengecualian', () => {
+  function diLuas(seed: string, kebiasaan: string[], denganBot: boolean): StatePermainan {
+    const dasar = stateAwal(seed, 'asn-3b');
+    return {
+      ...dasar,
+      tahap: 'luas',
+      niat: 'Menemani anak tumbuh.',
+      kebiasaan: kebiasaan.map((id) => ({ id, kemajuan: 0, lepas: false, lawanUnggul: false })),
+      bot: denganBot
+        ? dasar.bot.map((b) => ({
+            ...b,
+            // Bot dibuat jelas lebih kaya supaya pelampauan benar-benar terjadi.
+            state: {
+              ...b.state,
+              keuangan: { ...b.state.keuangan, saldoKas: 5_000_000_000, liabilitas: [] },
+            },
+          }))
+        : [],
+    };
+  }
+
+  it('tetap identik bit demi bit tanpa refleks-banding, meski bot jauh lebih kaya', () => {
+    const dengan = maju(diLuas('batas', ['refleks-panik', 'refleks-kejar'], true), 40);
+    const tanpa = maju(diLuas('batas', ['refleks-panik', 'refleks-kejar'], false), 40);
+    expect({ ...dengan, bot: [] }).toEqual({ ...tanpa, bot: [] });
+  });
+
+  it('dengan refleks-banding, pengeluaran pemain memang bergerak karena bot', () => {
+    const dengan = maju(diLuas('batas-banding', ['refleks-banding'], true), 40);
+    const tanpa = maju(diLuas('batas-banding', ['refleks-banding'], false), 40);
+
+    // Pembandingan ini hanya berarti kalau jalurnya benar-benar menyala.
+    expect(dengan.keuangan.pengeluaranTetap).toBeGreaterThan(tanpa.keuangan.pengeluaranTetap);
+    expect(dengan.kebiasaan[0].lawanUnggul).toBe(true);
+  });
+
+  it('dan itu SATU-SATUNYA jalurnya — tidak ada yang lain ikut bergeser', () => {
+    const dengan = maju(diLuas('batas-banding', ['refleks-banding'], true), 40);
+    const tanpa = maju(diLuas('batas-banding', ['refleks-banding'], false), 40);
+
+    // Posisi, dadu, harga, dan riwayat keputusan tidak boleh tersentuh sama
+    // sekali: yang berbeda hanya akibat kenaikan pengeluaran, bukan jalannya.
+    expect(dengan.posisi).toBe(tanpa.posisi);
+    expect(dengan.riwayatDadu).toEqual(tanpa.riwayatDadu);
+    expect(dengan.hargaPasar).toEqual(tanpa.hargaPasar);
+    expect(dengan.riwayatDitolak).toEqual(tanpa.riwayatDitolak);
+    expect(dengan.keuangan.gajiBersihBulanan).toBe(tanpa.keuangan.gajiBersihBulanan);
+    expect(dengan.keuangan.jumlahAnak).toBe(tanpa.keuangan.jumlahAnak);
+  });
+
+  it('berhenti bergerak begitu refleksnya dilepas', () => {
+    const lepas: StatePermainan = {
+      ...diLuas('batas-lepas', ['refleks-banding'], true),
+      kebiasaan: [{ id: 'refleks-banding', kemajuan: 1, lepas: true, lawanUnggul: false }],
+    };
+    const tanpa: StatePermainan = { ...lepas, bot: [] };
+    expect(maju(lepas, 40).keuangan.pengeluaranTetap).toBe(
+      maju(tanpa, 40).keuangan.pengeluaranTetap,
+    );
+  });
+});
+
+/**
  * `maju()` hanya melempar dadu dan menutup tawaran, jadi ia tidak pernah
  * menyentuh Gerbang Niat — `tahap`, `niat`, dan `kebiasaan` dibandingkan dalam
  * keadaan kosong di kedua lengan, dan pembandingannya hampa untuk ketiganya.
