@@ -141,11 +141,36 @@ describe('ringkasan kredit di kartu tawaran', () => {
    * Selisih minus bukan kartu buruk — itu pertukaran yang sah (§8.3): kas
    * berkurang, ekuitas tumbuh. Yang dilarang adalah menempelkan penilaian.
    */
-  it('selisih minus berkata ekuitas tumbuh, tanpa balik modal', () => {
+  it('selisih minus tampil tanpa balik modal', () => {
     pasangKartu({ sisaUtang: 88_000_000, cicilanBulanan: 900_000, arusKasBulanan: 350_000 });
     const teks = ringkasan().textContent ?? '';
-    expect(teks).toContain('Ekuitas tumbuh');
     expect(teks).not.toContain('Balik modal');
+  });
+
+  /**
+   * Arah nilai mengikuti KELAS, bukan selisihnya. Mengucapkan "nilai naik" pada
+   * motor sewa yang menyusut adalah permainan yang menyatakan hal yang tidak
+   * terjadi (§8.2), dan itulah yang terjadi sebelum §19 dibaca ulang.
+   */
+  it.each([
+    ['apresiasi', 'Nilai naik'],
+    ['stagnan', 'Nilai nyaris diam'],
+    ['depresiasi', 'Nilai turun'],
+  ] as const)('kelas %s berkata "%s"', (kelas, kalimat) => {
+    pasangKartu({ sisaUtang: 88_000_000, cicilanBulanan: 900_000, arusKasBulanan: 350_000, kelas });
+    expect(ringkasan().textContent).toContain(kalimat);
+  });
+
+  it('arah nilai tetap tampil meski selisihnya positif — dua sumbu, bukan satu', () => {
+    // Kapal: arus kas terbesar, nilai paling cepat turun (§8.3). Angka balik
+    // modal sendirian menceritakan separuh.
+    pasangKartu({
+      sisaUtang: 180_000_000, cicilanBulanan: 3_400_000,
+      arusKasBulanan: 5_500_000, uangMuka: 80_000_000, kelas: 'depresiasi',
+    });
+    const teks = ringkasan().textContent ?? '';
+    expect(teks).toContain('Balik modal');
+    expect(teks).toContain('Nilai turun');
   });
 
   it('selisih positif hijau, selisih minus merah', () => {

@@ -9,6 +9,7 @@ import {
   JURNAL_KOSONG_SEMUA,
   LABEL_EKSPOR,
   LABEL_KEMBALI,
+  LABEL_SALIN_TEKS,
   NAMA_KEBUTUHAN,
 } from '../data/naskah-jurnal';
 import { NASKAH_TUAI } from '../data/naskah-jeda';
@@ -130,5 +131,85 @@ describe('ekspor manual (§4.6.2)', () => {
 
     expect(klik).toHaveBeenCalled();
     mata.mockRestore();
+  });
+});
+
+describe('pola kebutuhan di layar jurnal (§12)', () => {
+  const tigaEntri = async () => {
+    await tambahJurnal(entri({ permainanId: 'g1', dibuatPada: 1000, kebutuhan: 'keamanan' }));
+    await tambahJurnal(entri({ permainanId: 'g1', dibuatPada: 2000, kebutuhan: 'keamanan' }));
+    await tambahJurnal(entri({ permainanId: 'g2', dibuatPada: 3000, kebutuhan: 'kendali' }));
+  };
+
+  it('menyatakan satu pola dengan dua angka dan satu nama', async () => {
+    await tigaEntri();
+    await buka();
+    await tunggu(() => screen.queryByText(/momen bertekanan/) !== null);
+    expect(screen.getByText('Dari 3 momen bertekanan, 2 berhenti di keamanan.')).toBeTruthy();
+  });
+
+  it('menghitung lintas permainan, bukan permainan terakhir saja', async () => {
+    await tigaEntri();
+    await buka();
+    await tunggu(() => screen.queryByText(/momen bertekanan/) !== null);
+    // g1 punya 2 entri, g2 punya 1. Totalnya harus 3.
+    expect(screen.getByText(/Dari 3 momen/)).toBeTruthy();
+  });
+
+  it('diam saat tidak ada satu pola yang bisa dinyatakan', async () => {
+    await tambahJurnal(entri({ dibuatPada: 1000, kebutuhan: 'keamanan' }));
+    await tambahJurnal(entri({ dibuatPada: 2000, kebutuhan: 'kendali' }));
+    await buka();
+    await tunggu(() => screen.queryAllByText(/Tunggu satu giliran/).length > 0);
+    expect(screen.queryByText(/momen bertekanan/)).toBeNull();
+  });
+
+  it('diam pada jurnal kosong', async () => {
+    await buka();
+    await tunggu(() => screen.queryByText(JURNAL_KOSONG_SEMUA) !== null);
+    expect(screen.queryByText(/momen bertekanan/)).toBeNull();
+  });
+
+  /**
+   * Prinsip 4: game menunjukkan, tidak menceramahi. Kalimat pola hanya boleh
+   * memuat hitungan — begitu ia memakai kata sambung yang menyimpulkan, ia
+   * berhenti menjadi pola dan menjadi diagnosis.
+   */
+  it('tidak menempelkan kesimpulan pada polanya', async () => {
+    await tigaEntri();
+    await buka();
+    await tunggu(() => screen.queryByText(/momen bertekanan/) !== null);
+    const teks = screen.getByText(/momen bertekanan/).textContent?.toLowerCase() ?? '';
+    for (const kata of ['berarti', 'karena', 'cenderung', 'sebaiknya', 'kamu']) {
+      expect(teks).not.toContain(kata);
+    }
+  });
+});
+
+describe('ekspor markdown (§12)', () => {
+  it('tombolnya ada dan benar-benar memanggil pengunduhnya', async () => {
+    await tambahJurnal(entri());
+    const klik = vi.fn();
+    const asli = document.createElement.bind(document);
+    const mata = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = asli(tag) as HTMLElement;
+      if (tag === 'a') el.click = klik;
+      return el;
+    });
+    URL.createObjectURL = vi.fn(() => 'blob:uji');
+    URL.revokeObjectURL = vi.fn();
+
+    await buka();
+    fireEvent.click(screen.getByRole('button', { name: LABEL_SALIN_TEKS }));
+    await tunggu(() => klik.mock.calls.length > 0);
+
+    expect(klik).toHaveBeenCalled();
+    mata.mockRestore();
+  });
+
+  it('berdampingan dengan cadangan .json — dua tugas, dua tombol', async () => {
+    await buka();
+    expect(screen.getByRole('button', { name: LABEL_SALIN_TEKS })).toBeTruthy();
+    expect(screen.getByRole('button', { name: LABEL_EKSPOR })).toBeTruthy();
   });
 });

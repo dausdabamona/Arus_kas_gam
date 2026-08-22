@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { KartuPeluang } from '../../types/kartu';
 import type { KondisiKeuangan } from '../../engine/keuangan';
 import { ringkasKredit } from '../../engine/kredit';
+import { ARAH_NILAI } from '../../data/naskah-kartu';
 import { rupiah, tahun } from '../../lib/format';
 import { LembarBawah } from '../ui/LembarBawah';
 import { LaporanKeuangan } from '../keuangan/LaporanKeuangan';
@@ -88,16 +89,24 @@ export function KartuPeluangTampil({ kartu, keuangan, onPutuskan, memproses = fa
               {rupiah(kredit.selisih)}
             </span>
             <span className="text-tinta/45">/bln · </span>
-            {kredit.balikModal === null ? (
-              <span className="text-tinta/60">Ekuitas tumbuh</span>
-            ) : (
+            {kredit.balikModal !== null && (
               <>
                 <span className="text-tinta/60">Balik modal </span>
                 {/* Satu napas: "~3,2" dan "th" yang terpisah baris membuat
                     satuannya terbaca sebagai baris baru, bukan sebagai satuan. */}
                 <span className="whitespace-nowrap font-semibold">~{tahun(kredit.balikModal)} th</span>
+                <span className="text-tinta/45"> · </span>
               </>
             )}
+            {/*
+              Sumbu kedua §8.3, selalu ada. "Ekuitas tumbuh" hanya benar untuk
+              kelas apresiasi; mengucapkannya pada motor sewa yang menyusut
+              adalah permainan yang menyatakan hal yang tidak terjadi (§8.2).
+              Dan ia dilaporkan meski selisihnya positif, sebab di situlah sumbu
+              kedua paling mudah hilang: kapal berarus kas terbesar justru yang
+              nilainya paling cepat turun.
+            */}
+            <span className="whitespace-nowrap text-tinta/60">{ARAH_NILAI[kredit.nilai]}</span>
           </div>
         )}
 

@@ -65,3 +65,27 @@ describe('ringkasan kredit kartu tawaran', () => {
     expect(k).toEqual(salinan);
   });
 });
+
+describe('arah nilai aset ikut dilaporkan (§8.3)', () => {
+  /**
+   * "Ekuitas tumbuh" hanya benar untuk kelas apresiasi. Mengucapkannya pada
+   * motor sewa yang nilainya menyusut adalah permainan yang menyatakan sesuatu
+   * yang tidak terjadi — dan §8.2 melarang memancing emosi di atas data keliru.
+   */
+  it.each([
+    ['apresiasi', 'tumbuh'],
+    ['stagnan', 'diam'],
+    ['depresiasi', 'turun'],
+  ] as const)('kelas %s -> nilai %s', (kelas, arah) => {
+    expect(ringkasKredit(kartu({ kelas }))!.nilai).toBe(arah);
+  });
+
+  it('arah nilai dilaporkan apa pun selisihnya — dua sumbu, bukan satu', () => {
+    // §8.3: kapal berarus kas terbesar tapi nilainya menyusut. Kalau arah nilai
+    // hanya muncul saat selisihnya minus, sumbu kedua hilang justru pada kartu
+    // yang paling membutuhkannya.
+    const untung = ringkasKredit(kartu({ kelas: 'depresiasi', arusKasBulanan: 5_500_000, cicilanBulanan: 3_400_000 }))!;
+    expect(untung.selisih).toBeGreaterThan(0);
+    expect(untung.nilai).toBe('turun');
+  });
+});

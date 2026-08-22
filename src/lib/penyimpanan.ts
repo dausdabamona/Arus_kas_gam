@@ -1,4 +1,5 @@
 import { semuaJurnal } from './db';
+import { jurnalKeMarkdown } from './jurnal-markdown';
 
 /**
  * Meminta sistem menandai data agar tidak dibersihkan otomatis saat
@@ -45,6 +46,22 @@ export async function unduhCadanganJurnal(): Promise<void> {
   const tautan = document.createElement('a');
   tautan.href = url;
   tautan.download = `jurnal-arus-${tanggal}.json`;
+  tautan.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Mengunduh jurnal sebagai markdown (§12). Berbeda tugas dari cadangan `.json`:
+ * yang satu dibaca mesin saat data hilang, yang satu dibaca orang saat ia
+ * melanjutkan latihannya di luar aplikasi.
+ */
+export async function unduhJurnalMarkdown(): Promise<void> {
+  const teks = jurnalKeMarkdown(await semuaJurnal());
+  const tanggal = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(new Blob([teks], { type: 'text/markdown' }));
+  const tautan = document.createElement('a');
+  tautan.href = url;
+  tautan.download = `jurnal-arus-${tanggal}.md`;
   tautan.click();
   URL.revokeObjectURL(url);
 }
