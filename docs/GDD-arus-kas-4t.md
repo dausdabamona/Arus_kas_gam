@@ -113,6 +113,26 @@ hasil; hanya ketahuan bila konsumsi PRNG dicurigai. Dua kejadian nyata:
 tabrakan ruang-indeks pasar-vs-dadu, dan undian kartu guncang yang menarik
 dua angka bahkan saat cadangan tak dipakai.
 
+**Benih terlihat dan bisa diketik.** Benih berbentuk tiga kata dari alam
+(`kabut-rusa-lontar`), tampil di Layar Mulai dan di kaki lembar Keuangan, dan
+bisa diketik ulang oleh siapa pun. Bentuknya kata dan bukan angka karena benih
+ini akan disalin manusia ke sebuah pesan lalu diketik lagi di ponsel lain —
+angka punya 0/O dan 1/l, kata tidak.
+
+Tiga aturan yang mengikat:
+- **Perapian terjadi tepat sekali**, di pintu masuk, sebelum teks menjadi
+  benih. Benih yang dipercantik saat DITAMPILKAN adalah benih yang salah: ia
+  tidak lagi membuka dunia yang sama.
+- **Benih tidak pernah tampil tanpa profesinya.** Benih menentukan dunia,
+  profesi menentukan titik berangkat; benih sendirian tidak cukup mengulang
+  permainan, dan antarmuka tidak boleh berpura-pura cukup.
+- **Pembuat benih baru hidup di `lib/`, bukan `engine/`.** Memilih benih
+  adalah satu-satunya langkah yang memang tidak boleh deterministik.
+
+Kemurnian `engine/` kini dijaga tes (`engine/kemurnian.test.ts`), bukan
+ingatan; dan "benih sama, dunia sama" diuji sebagai permainan utuh 200 giliran
+dengan bot hidup (`engine/benih-dunia.test.ts`), bukan per potongan.
+
 ### 4.3 Event log (append-only)
 
 State permainan **tidak disimpan langsung**. Yang disimpan adalah daftar
