@@ -6,6 +6,15 @@ import type { KebutuhanId } from './kejadian';
 
 export type StatusPermainan = 'berjalan' | 'selesai';
 
+/**
+ * Kenapa permainan berhenti. §7.3 bergantung padanya: berhenti dengan sadar
+ * adalah KEMENANGAN di papan Kemerdekaan, bukan kekalahan — dan perbedaan itu
+ * hilang kalau yang tersimpan cuma "selesai".
+ *
+ * 'menyerah' hidup sebagai id di kode dan TIDAK pernah muncul di layar.
+ */
+export type AlasanAkhir = 'lolos' | 'menyerah' | 'bangkrut';
+
 export interface StatePermainan {
   seed: string;
   profesiId: string;
@@ -13,6 +22,8 @@ export interface StatePermainan {
   posisi: number;
   riwayatDadu: number[];
   status: StatusPermainan;
+  /** Null selama permainan berjalan. Tidak pernah berubah sesudah terisi. */
+  alasanAkhir: AlasanAkhir | null;
   keuangan: KondisiKeuangan;
   /**
    * Takaran guncangan acak, DIKUNCI sekali di awal permainan dari arus kas

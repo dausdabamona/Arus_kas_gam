@@ -119,6 +119,7 @@ export function stateAwal(seed: string, profesiId: string, denganBot = true): St
     posisi: 0,
     riwayatDadu: [],
     status: 'berjalan',
+    alasanAkhir: null,
     keuangan: kondisiAwal,
     hargaPasar: hargaAwalSemua(),
     hargaPasarLalu: hargaAwalSemua(),
@@ -762,7 +763,7 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
 
       const tersedia = tuasTersedia(state.keuangan);
       if (tersedia.length === 0) {
-        return { ...state, status: 'selesai' }; // bangkrut, §5.3
+        return { ...state, status: 'selesai', alasanAkhir: 'bangkrut' }; // §5.3
       }
 
       // Urutan bawaan sengaja berbeda dari urutan tampil di tuasTersedia:
@@ -799,7 +800,12 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
     }
 
     case 'AKHIR':
-      return { ...state, status: 'selesai' };
+      // Yang PERTAMA menutup permainan, bukan yang terakhir. Log yang diputar
+      // ulang bisa memuat kejadian sesudah akhir, dan alasan yang tertimpa
+      // membuat orang yang berhenti dengan sadar terbaca sebagai orang yang
+      // jatuh — persis pembedaan yang §7.3 minta dijaga.
+      if (state.status === 'selesai') return state;
+      return { ...state, status: 'selesai', alasanAkhir: kejadian.isi.alasan };
 
     default:
       // Kejadian Fase 3+ belum mengubah state; sengaja dibiarkan lewat.
