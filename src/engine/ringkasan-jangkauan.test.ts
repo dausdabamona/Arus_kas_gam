@@ -58,8 +58,15 @@ describe('keempat kuadran §10.3 benar-benar bisa dicapai', () => {
     expect(HASIL.hitung[kuadran] ?? 0).toBeGreaterThan(0);
   });
 
-  it('tidak ada kuadran kelima', () => {
-    expect(Object.keys(HASIL.hitung).sort()).toEqual(Object.keys(KUADRAN).sort());
+  it('tidak ada kuadran kelima — selain "tak terbaca", yang memang bukan kuadran', () => {
+    // null bukan petak kelima: ia justru penolakan menaruh orang di petak mana
+    // pun saat satu sumbunya belum punya angka.
+    const nyata = Object.keys(HASIL.hitung).filter((k) => k !== 'null');
+    expect(nyata.sort()).toEqual(Object.keys(KUADRAN).sort());
+  });
+
+  it('yang belum teruji memang berakhir tanpa kuadran, bukan di kolom rendah', () => {
+    expect(HASIL.hitung['null'] ?? 0).toBeGreaterThan(0);
   });
 });
 

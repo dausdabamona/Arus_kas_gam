@@ -536,6 +536,33 @@ Tenang.
 | **Kekayaan tinggi** | Bebas | Kaya tapi terikat |
 | **Kekayaan rendah** | Tenang tapi belum berdaya | Belum jalan |
 
+Kotak "Kaya tapi terikat" adalah pesan utama seluruh game, dan jauh lebih
+tajam disampaikan lewat skor daripada lewat ceramah.
+
+**Tabel ini hanya digambar bila KEDUA sumbunya punya angka.** Pemain yang
+menutup Jeda di layar pertama tidak pernah mencatat suhu, jadi keputusannya
+tidak pernah terhitung sebagai keputusan bertekanan dan papan Kemerdekaan tidak
+punya apa pun untuk dibaca. Menaruh orang itu di kolom "rendah" berarti
+menghakimi orang yang tidak diukur — dan §15.1 beserta Prinsip 3 justru
+menjanjikan Lewati **tanpa penalti**. Judul yang menghakimi adalah penalti dalam
+satu-satunya mata uang yang dimiliki layar akhir.
+
+Aturannya sama dengan yang sudah dikunci di §7.2: skor mentah tidak pernah
+dibaca tanpa jumlah ujiannya. Bila papan Kemerdekaan belum terbaca, layar akhir
+menyebut keadaan alat ukurnya, bukan keadaan orangnya, dan papan Kekayaan tetap
+dilaporkan apa adanya.
+
+**§7.3 tercatat di papan yang disebutnya.** Berhenti dengan sadar muncul sebagai
+catatan DI DALAM papan Kemerdekaan, bukan cuma sebagai baris alasan di bawah
+judul. Skornya tidak digeser: menambah angka yang tidak diukur ke rasio yang
+diukur akan mengarang pengukuran, dan papan ini satu-satunya tempat di permainan
+yang angkanya berasal dari laporan diri pemain.
+
+**Empat judulnya tetap seperti tertulis di atas.** "Kaya tapi terikat" memang
+tajam dan ketajamannya bekerja; "Belum jalan" adalah bahasa Indonesia biasa
+tentang sebuah usaha yang belum berjalan, bukan tentang orangnya. Yang keliru
+sebelumnya bukan kata-katanya, melainkan siapa yang menerimanya.
+
 ---
 
 ## 11. Bot

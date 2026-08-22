@@ -19,6 +19,9 @@ import {
   CATATAN_ALAT_LATIHAN,
   DISCLAIMER,
   JURNAL_KOSONG,
+  JUDUL_SATU_PAPAN,
+  KETERANGAN_SATU_PAPAN,
+  CATATAN_BERHENTI_SADAR,
 } from '../data/naskah-akhir';
 import type { AlasanAkhir, StatePermainan } from '../types/state';
 
@@ -246,5 +249,88 @@ describe('jalan keluar yang sadar dari Lingkar Luas (§7.3)', () => {
     diLuas();
     render(<App />);
     expect(screen.getByText(PENJELASAN_BERHENTI)).toBeTruthy();
+  });
+});
+
+describe('PERAN 4 — papan yang belum terbaca tidak dihakimi', () => {
+  /**
+   * 72 dari 288 permainan simulasi (25%) ditaruh di petak §10.3 padahal papan
+   * Kemerdekaannya tidak punya satu pun keputusan untuk dibaca. Seluruhnya
+   * mendarat di kolom "rendah" — bukan karena diukur rendah, tapi karena tidak
+   * diukur. Semuanya pemain yang melewati setiap Jeda.
+   */
+  it('tanpa judul kuadran saat kemerdekaan belum teruji', () => {
+    selesai(teruji(0, 0));
+    render(<App />);
+    for (const judul of Object.values(JUDUL_KUADRAN)) {
+      expect(screen.queryByText(judul)).toBeNull();
+    }
+    expect(screen.getByText(JUDUL_SATU_PAPAN)).toBeTruthy();
+  });
+
+  it('menerangkan sisi yang MEMANG terbaca, bukan diam soal keduanya', () => {
+    selesai((s) => teruji(0, 0)(kaya(s)));
+    render(<App />);
+    expect(screen.getByText(KETERANGAN_SATU_PAPAN.kaya)).toBeTruthy();
+  });
+
+  it('dan sisi yang belum, tanpa menyebutnya rendah', () => {
+    selesai(teruji(0, 0));
+    render(<App />);
+    expect(screen.getByText(KETERANGAN_SATU_PAPAN.belum)).toBeTruthy();
+  });
+
+  /**
+   * §15.1 dan Prinsip 3: Lewati tanpa penalti. Judul yang menghakimi adalah
+   * penalti dalam satu-satunya mata uang yang dimiliki layar akhir.
+   */
+  it('pemain yang melewati setiap Jeda tidak menerima satu pun kata vonis', () => {
+    selesai(teruji(0, 0));
+    render(<App />);
+    const teks = (document.body.textContent ?? '').toLowerCase();
+    for (const kata of ['belum jalan', 'terikat']) expect(teks).not.toContain(kata);
+  });
+
+  it('judul kuadran kembali begitu ada cukup ujian', () => {
+    selesai(teruji(0, 10));
+    render(<App />);
+    expect(screen.getByText(JUDUL_KUADRAN['belum-jalan'])).toBeTruthy();
+    expect(screen.queryByText(JUDUL_SATU_PAPAN)).toBeNull();
+  });
+});
+
+describe('PERAN 4 — §7.3 tercatat di papan yang disebutnya', () => {
+  /**
+   * Pasal itu menyebut papan Kemerdekaan dengan namanya. Sampai sekarang
+   * berhenti dengan sadar tidak tercatat di papan itu sama sekali — hanya
+   * sebagai satu baris alasan di bawah judul, dan judul yang sama bisa
+   * berbunyi "Belum jalan".
+   */
+  it('catatan berdiri di dalam papan Kemerdekaan, bukan di tempat lain', () => {
+    selesai(teruji(0, 10), 'menyerah');
+    render(<App />);
+    const papan = screen.getByText(JUDUL_KEMERDEKAAN).closest('[data-papan]');
+    expect(papan?.textContent).toContain(CATATAN_BERHENTI_SADAR);
+  });
+
+  it('tidak muncul pada akhir yang lain', () => {
+    for (const alasan of ['lolos', 'bangkrut'] as const) {
+      cleanup();
+      selesai(teruji(0, 10), alasan);
+      render(<App />);
+      expect(screen.queryByText(CATATAN_BERHENTI_SADAR)).toBeNull();
+    }
+  });
+
+  /**
+   * Skornya TIDAK digeser. Menambah angka yang tidak diukur ke rasio yang
+   * diukur akan mengarang pengukuran — dan papan ini satu-satunya tempat di
+   * permainan yang angkanya berasal dari laporan diri pemain.
+   */
+  it('tanpa menggeser skor yang diukur', () => {
+    selesai(teruji(0, 10), 'menyerah');
+    render(<App />);
+    const papan = screen.getByText(JUDUL_KEMERDEKAAN).closest('[data-papan]');
+    expect(papan?.textContent).toContain('0%');
   });
 });

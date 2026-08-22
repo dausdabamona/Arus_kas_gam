@@ -43,7 +43,12 @@ export interface PapanKemerdekaan extends RingkasKemerdekaan {
 export interface RingkasanAkhir {
   kekayaan: PapanKekayaan;
   kemerdekaan: PapanKemerdekaan;
-  kuadran: Kuadran;
+  /**
+   * Null saat papan Kemerdekaan belum terbaca. Silang dua papan tidak bisa
+   * digambar kalau salah satu sumbunya tidak punya angka — dan menaruhnya di
+   * kolom "rendah" berarti menghakimi orang yang tidak diukur (§7.2, §15.1).
+   */
+  kuadran: Kuadran | null;
   alasanAkhir: AlasanAkhir | null;
   giliran: number;
   tahap: StatePermainan['tahap'];
@@ -69,7 +74,7 @@ export function ringkasAkhir(state: StatePermainan): RingkasanAkhir {
       tinggi: kekayaanTinggi,
     },
     kemerdekaan: { ...merdeka, tinggi: merdekaTinggi },
-    kuadran: pilihKuadran(kekayaanTinggi, merdekaTinggi),
+    kuadran: merdeka.belumTeruji ? null : pilihKuadran(kekayaanTinggi, merdekaTinggi),
     alasanAkhir: state.alasanAkhir,
     giliran: state.giliran,
     tahap: state.tahap,

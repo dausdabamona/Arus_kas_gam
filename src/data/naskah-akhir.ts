@@ -30,6 +30,30 @@ export const LABEL_UJIAN = 'Keputusan bertekanan';
 export const BELUM_TERUJI =
   'Belum cukup keputusan bertekanan untuk diukur. Papan ini menunggu, bukan menilai.';
 
+/**
+ * Saat papan Kemerdekaan belum terbaca, tidak ada silang dua papan yang bisa
+ * digambar — dan menaruh orang di kolom "rendah" karena ia tidak diukur adalah
+ * penalti atas Lewati, yang §15.1 dan Prinsip 3 justru janjikan bebas penalti.
+ *
+ * Judulnya menyebut keadaan alat ukurnya, bukan keadaan orangnya.
+ */
+export const JUDUL_SATU_PAPAN = 'Baru satu papan yang terbaca';
+export const KETERANGAN_SATU_PAPAN = {
+  kaya: 'Pendapatan pasif menutup pengeluaran. Papan Kemerdekaan belum punya cukup keputusan bertekanan untuk dibaca.',
+  belum: 'Pendapatan pasif belum menutup pengeluaran. Papan Kemerdekaan belum punya cukup keputusan bertekanan untuk dibaca.',
+} as const;
+
+/**
+ * §7.3: berhenti dengan sadar "dicatat sebagai kemenangan di papan
+ * Kemerdekaan". Sampai sekarang ia tidak tercatat di papan itu sama sekali —
+ * hanya sebagai satu baris alasan di bawah judul. Pasal yang menyebut papan
+ * tertentu harus terlihat DI papan itu.
+ *
+ * Ia tidak menggeser skornya: menambah angka yang tidak diukur ke rasio yang
+ * diukur akan mengarang pengukuran. Yang dicatat adalah catatannya.
+ */
+export const CATATAN_BERHENTI_SADAR = 'Berhenti dengan sadar — tercatat di papan ini.';
+
 /** Judul §10.3, apa adanya dari GDD. */
 export const JUDUL_KUADRAN: Record<Kuadran, string> = {
   bebas: 'Bebas',

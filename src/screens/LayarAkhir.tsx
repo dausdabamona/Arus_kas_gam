@@ -9,6 +9,9 @@ import {
   JUDUL_KEMERDEKAAN,
   JUDUL_KUADRAN,
   KETERANGAN_KUADRAN,
+  JUDUL_SATU_PAPAN,
+  KETERANGAN_SATU_PAPAN,
+  CATATAN_BERHENTI_SADAR,
   KETERANGAN_AKHIR,
   LABEL_KEKAYAAN_BERSIH,
   LABEL_PENDAPATAN_PASIF,
@@ -40,10 +43,19 @@ export function LayarAkhir() {
   return (
     <main className="mx-auto max-w-md p-5 pb-10">
       <p className="text-xs uppercase tracking-wide text-tinta/50">{JUDUL_LAYAR}</p>
+      {/*
+        Tanpa kuadran saat papan Kemerdekaan belum terbaca. Silang dua papan
+        butuh dua sumbu; menaruh orang di kolom "rendah" karena ia tidak diukur
+        adalah penalti atas Lewati — yang §15.1 janjikan bebas penalti.
+      */}
       <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-teal-tua">
-        {JUDUL_KUADRAN[r.kuadran]}
+        {r.kuadran ? JUDUL_KUADRAN[r.kuadran] : JUDUL_SATU_PAPAN}
       </h1>
-      <p className="mt-2 text-sm text-tinta/70">{KETERANGAN_KUADRAN[r.kuadran]}</p>
+      <p className="mt-2 text-sm text-tinta/70">
+        {r.kuadran
+          ? KETERANGAN_KUADRAN[r.kuadran]
+          : KETERANGAN_SATU_PAPAN[r.kekayaan.tinggi ? 'kaya' : 'belum']}
+      </p>
       {r.alasanAkhir && (
         <p className="mt-3 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/60">
           {KETERANGAN_AKHIR[r.alasanAkhir]}
@@ -83,6 +95,18 @@ export function LayarAkhir() {
               <BarisPapan label={LABEL_SKOR} nilai={`${r.kemerdekaan.skor}%`} />
               <BarisPapan label={LABEL_UJIAN} nilai={r.kemerdekaan.ujian} />
             </>
+          )}
+          {/*
+            §7.3 menyebut papan INI dengan namanya: berhenti dengan sadar
+            dicatat sebagai kemenangan di papan Kemerdekaan. Sampai sekarang ia
+            tidak tercatat di sini sama sekali. Skornya tidak digeser — menambah
+            angka yang tidak diukur ke rasio yang diukur akan mengarang
+            pengukuran; yang dicatat adalah catatannya.
+          */}
+          {r.alasanAkhir === 'menyerah' && (
+            <p className="mt-2 border-t border-teal-muda pt-2 text-sm text-teal-tua">
+              {CATATAN_BERHENTI_SADAR}
+            </p>
           )}
         </PapanSkor>
       </div>

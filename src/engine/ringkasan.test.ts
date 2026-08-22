@@ -115,3 +115,44 @@ describe('ringkasan membawa konteks yang membuatnya bisa dibaca ulang', () => {
     expect(s).toEqual(salinan);
   });
 });
+
+describe('papan yang belum terbaca tidak bisa ditaruh di kuadran', () => {
+  /**
+   * TEMUAN PERAN 4, terukur: 72 dari 288 permainan (25%) ditaruh di petak
+   * §10.3 padahal papan Kemerdekaannya belum punya satu pun keputusan untuk
+   * dibaca. Seluruh 72 mendarat di kolom "rendah" — bukan karena diukur
+   * rendah, tapi karena tidak diukur sama sekali.
+   *
+   * Dua hal patah sekaligus:
+   *
+   * 1. Papan Kemerdekaan berkata "menunggu, bukan menilai" satu baris di bawah
+   *    judul yang sudah menilai.
+   * 2. §15.1 dan Prinsip 3 menjanjikan Lewati TANPA PENALTI. Pemain yang
+   *    melewati setiap Jeda tidak kehilangan apa pun secara mekanik, tapi
+   *    dijamin mendarat di kolom rendah dan dihakimi di sana — penalti dalam
+   *    satu-satunya mata uang yang dimiliki layar akhir.
+   *
+   * Kuncinya sudah ada sejak Fase 6: §7.2 melarang membaca skor mentah tanpa
+   * jumlah ujian. §10.3 ditulis sebelum kunci itu dipasang; ini memasangnya.
+   */
+  it('tanpa kuadran saat kemerdekaan belum teruji', () => {
+    const r = ringkasAkhir(skor(dasar(), 0, 0));
+    expect(r.kemerdekaan.belumTeruji).toBe(true);
+    expect(r.kuadran).toBeNull();
+  });
+
+  it('juga saat kekayaannya tinggi — bukan soal uangnya', () => {
+    expect(ringkasAkhir(skor(kaya(dasar()), 0, 0)).kuadran).toBeNull();
+  });
+
+  it('kuadran kembali begitu ada cukup ujian, berapa pun skornya', () => {
+    expect(ringkasAkhir(skor(dasar(), 0, MINIMUM_UJIAN)).kuadran).toBe('belum-jalan');
+    expect(ringkasAkhir(skor(kaya(dasar()), 0, MINIMUM_UJIAN)).kuadran).toBe('kaya-terikat');
+  });
+
+  it('papan kekayaan tetap terbaca — yang hilang cuma silangnya', () => {
+    const r = ringkasAkhir(skor(kaya(dasar()), 0, 0));
+    expect(r.kekayaan.tinggi).toBe(true);
+    expect(r.kuadran).toBeNull();
+  });
+});

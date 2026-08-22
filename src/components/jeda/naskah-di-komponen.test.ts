@@ -21,7 +21,17 @@ const KOMPONEN = [
 /** Semua kalimat yang benar-benar ada di naskah, untuk dibandingkan. */
 function kumpulkan(nilai: unknown, keluar: string[] = []): string[] {
   if (typeof nilai === 'string') keluar.push(nilai);
-  else if (typeof nilai === 'function') kumpulkan((nilai as (n: number) => unknown)(6), keluar);
+  else if (typeof nilai === 'function') {
+    // Sebagian naskah adalah fungsi berargumen lebih dari satu (kalimatPola).
+    // Memanggilnya dengan satu angka melempar, dan lemparan di tingkat modul
+    // membuat SELURUH berkas tes ini gagal dimuat — gagal yang tidak terbaca
+    // sebagai tes merah, melainkan sebagai berkas yang hilang dari hitungan.
+    try {
+      kumpulkan((nilai as (...a: unknown[]) => unknown)(6, 3, 'keamanan'), keluar);
+    } catch {
+      /* naskah yang butuh bentuk argumen lain diuji di berkas naskahnya sendiri */
+    }
+  }
   else if (Array.isArray(nilai)) for (const x of nilai) kumpulkan(x, keluar);
   else if (nilai && typeof nilai === 'object') for (const x of Object.values(nilai)) kumpulkan(x, keluar);
   return keluar;
