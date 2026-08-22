@@ -133,6 +133,22 @@ Kemurnian `engine/` kini dijaga tes (`engine/kemurnian.test.ts`), bukan
 ingatan; dan "benih sama, dunia sama" diuji sebagai permainan utuh 200 giliran
 dengan bot hidup (`engine/benih-dunia.test.ts`), bukan per potongan.
 
+**Invarian isolasi bot — berlapis sejak refleks-banding (§7.2).** Dulu: bot
+tidak pernah menyentuh pemain. Iri secara struktural butuh orang lain yang
+terlihat, jadi refleks-banding memang harus membiarkan keadaan bot menggerakkan
+pengeluaran pemain — menghapus ketergantungan itu mengebiri kartunya. Batas
+baru, diuji dari dua sisi:
+- **Lingkar Harian: isolasi penuh, tanpa kecuali.**
+- **Lingkar Luas tanpa refleks-banding: isolasi penuh** — diuji dengan bot
+  sengaja 5 miliar lebih kaya, state pemain tetap identik bit demi bit.
+- **Lingkar Luas dengan refleks-banding: tepat satu kanal** — hanya
+  `pengeluaranTetap` dan penanda kartunya yang boleh dipengaruhi bot. Posisi,
+  dadu, harga pasar, riwayat keputusan, gaji, jumlah anak wajib sama persis.
+- **Begitu refleks dilepas, kanal menutup.**
+
+Kebocoran yang dipetakan, bernama, dan diuji dari dua sisi bukan kebocoran —
+ia kanal. Yang berbahaya adalah kebocoran yang dikira tidak ada.
+
 ### 4.3 Event log (append-only)
 
 State permainan **tidak disimpan langsung**. Yang disimpan adalah daftar
@@ -536,7 +552,15 @@ Pak Umar sering menang di papan Kemerdekaan. Itu disengaja.
 
 ## 12. Jurnal
 
-Semua kalimat Tanam + hasil Tuai + kebutuhan tersimpan lintas sesi.
+Semua kalimat Tanam + hasil Tuai + kebutuhan yang paling sering tersentuh
+tersimpan lintas sesi. Bisa diekspor ke teks/markdown untuk disalin ke jurnal
+30 hari yang sesungguhnya.
+
+Layar jurnal menampilkan satu pola tanpa menafsirkan:
+
+> Dari 14 momen bertekanan, 9 berhenti di **keamanan**.
+
+Ini yang menyambungkan game ke hidup nyata. Tanpanya, produk ini hanya hiburan.
 
 ---
 
@@ -586,7 +610,7 @@ Desain: pegawai bank bergaji dua kali lipat ASN tapi **lebih sulit lolos**.
 | **4** | Tiga bot + komentar | Bot main sendiri sampai selesai |
 | **5** | **Sistem 4T** | Panen muncul otomatis dengan dua sisi hasil |
 | **6** | Gerbang Niat, Lingkar Luas, Kartu Kebiasaan Lama | Skor T1 mempengaruhi kondisi awal T2 |
-| **7** | Jurnal lintas sesi + Ringkasan Akhir dua papan | Jurnal bertahan setelah permainan dihapus |
+| **7** | Jurnal lintas sesi + ekspor + Ringkasan Akhir dua papan | Jurnal bertahan setelah permainan dihapus |
 | **8** | Balancing, aksesibilitas, uji di Android RAM 2 GB | Bisa dimainkan orang lain tanpa dijelaskan |
 
 **Gerbang:** tiap fase berhenti untuk konfirmasi sebelum lanjut.
@@ -597,6 +621,59 @@ Desain: pegawai bank bergaji dua kali lipat ASN tapi **lebih sulit lolos**.
 
 - Data pasar sungguhan, multiplayer online, akun/login/cloud sync,
   animasi 3D, sistem pencapaian/lencana.
+
+---
+
+## 18. Yang Masih Terbuka
+
+1. Nama produk final.
+2. Angka profesi §14.1 perlu ditera ulang saat balancing.
+3. Perlukah mode "cepat" 10 menit untuk pemakaian di kelas/pelatihan?
+4. Perlukah ekspor jurnal ke .docx berkop, kalau game ini dipakai untuk
+   pelatihan resmi?
+
+---
+
+## 19. Ide Pengembangan — Ditahan (bukan tugas fase)
+
+Dicatat agar tidak hilang, sengaja tidak dijadwalkan agar tidak menyelinap
+sebelum Fase 6–8 tuntas.
+
+**"Laporan keuangan bisa dibuka saat kartu tawaran terbuka."** — SUDAH
+DIKERJAKAN. Pemain membaca tawaran kartu atau tawaran pasar sambil perlu
+membandingkannya dengan kondisi keuangannya sendiri: punya cukup uang muka?
+Cicilan tambahan masih sanggup? Arus kas sudah berapa? Tanpa bisa membuka
+laporan, ia memutuskan dari ingatan.
+
+Tombol "Keuangan" ada di kartu peluang dan kartu pasar. Lembar laporan terbuka
+di atas kartu; kartu tetap menunggu di belakang, keputusan belum diambil. Untuk
+kartu pasar, timer dibekukan selagi laporan terbuka — kail `beku` dari Fase 3,
+mekanisme yang sama dengan Jeda Batin. Laporan di sini MEMBACA saja: baris
+utangnya tidak membuka lembar pelunasan.
+
+**"Ringkasan kredit tiga angka di kartu tawaran."** — SUDAH DIKERJAKAN. Untuk
+kartu berutang: cicilan per bulan, selisih terhadap arus kasnya, dan lama balik
+modal. Selisih nol atau minus tidak ditandai sebagai kartu buruk — itu
+pertukaran yang sah (§8.3): kas berkurang, ekuitas tumbuh. Balik modal tidak
+ditampilkan di situ, sebab angkanya akan tak hingga atau negatif. Tanpa satu
+pun kata penilaian; angkanya yang berbicara (Prinsip 4).
+
+**Memecah `pengeluaranTetap` jadi beberapa pos.** Saat ini satu angka
+gelondongan, dan Berhemat cuma menurunkannya 15% — pemain tidak pernah melihat
+apa yang ia korbankan. §5.3 menyebut Berhemat sebagai "kehilangan kenyamanan
+sekarang, permanen", tapi tanpa melihat kenyamanan apa yang hilang, permanennya
+cuma angka.
+
+**Maksudnya (ini yang membedakannya dari sekadar rincian):** memecah pengeluaran
+jadi beberapa pos BUKAN untuk ditampilkan statis di menu Keuangan — itu rincian
+yang tidak mengubah keputusan mana pun dan melanggar YAGNI (§3, Prinsip 5).
+Maksudnya adalah menampilkan pos mana yang tergerus tepat saat Berhemat dipilih,
+mengubah keputusan darurat dari "angka turun" jadi "aku melepaskan sesuatu".
+Rincian yang punya pekerjaan, bukan rincian yang memuaskan rasa ingin tahu.
+
+Uji kelayakannya saat diambil nanti: apakah melihat pos yang hilang mengubah
+cara pemain memutuskan di lembar darurat? Kalau tidak, ia tetap YAGNI dan tidak
+dikerjakan.
 
 ---
 
