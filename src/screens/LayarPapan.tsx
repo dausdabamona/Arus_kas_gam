@@ -31,9 +31,16 @@ export function LayarPapan() {
    * pada PELUANG_KECIL. Godaan kecil memang dibiarkan lewat tanpa upacara,
    * supaya jeda tidak jadi ritual kosong yang menjemukan.
    *
-   * Kebutuhan kartu guncang datang dari datanya. Dua pemicu lain tidak punya
-   * pemicu tertulis, jadi dipetakan tetap: uang besar yang keluar mengancam
-   * rasa aman, dan harga yang bergerak sendiri menyentuh rasa kendali.
+   * Kebutuhan kartu guncang datang dari datanya sendiri. Dua pemicu lain tidak
+   * punya pemicu tertulis, jadi dipetakan tetap — dan pemetaan ini KEPUTUSAN
+   * DESAIN dari tabel §9.1 GDD, bukan tempelan yang boleh diganti sekenanya:
+   *
+   *   PELUANG_BESAR -> keamanan. Barisnya "Serakah": tawaran yang sayang
+   *   dilewatkan menyentuh keamanan/kendali, dan yang menonjol saat uang besar
+   *   benar-benar keluar adalah rasa aman.
+   *
+   *   PASAR -> kendali. Barisnya "Menyesal": harga bergerak sendiri, dan yang
+   *   tersentuh adalah keinginan mengatur hal yang memang tidak bisa diatur.
    */
   const pemicu = useMemo(() => {
     if (!state) return null;

@@ -77,6 +77,16 @@ const PANEN_MAKS = 10;
 /**
  * Turunnya suhu yang dianggap benar-benar mereda. Di bawah ini keputusan
  * dihitung bertekanan — bukan hukuman, cuma pengukuran.
+ *
+ * ANGKA INI BELUM PERNAH DIUJI PADA MANUSIA. Ia dugaan dari Fase 5, dan
+ * simulator tidak bisa menjawabnya: pelari simulasi tidak pernah menyentuh
+ * suhu maupun jeda. Risikonya satu arah — kalau pemain nyata sering menjalani
+ * jeda penuh tapi suhunya turun kurang dari tiga poin, papan Kemerdekaan
+ * terbaca rendah justru untuk orang yang sudah berusaha, dan alatnya menghukum
+ * usaha yang tulus.
+ *
+ * Jangan disetel dari tebakan. Ia disetel di Fase 8, dari orang sungguhan yang
+ * menggeser slidernya.
  */
 const AMBANG_REDA = 3;
 
