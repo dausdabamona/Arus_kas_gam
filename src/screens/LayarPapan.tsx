@@ -14,6 +14,8 @@ import { cariKartuGuncang } from '../data/kartu-guncang';
 import { cariInstrumen } from '../data/instrumen';
 import { PitaKebiasaan } from '../components/papan/PitaKebiasaan';
 import { LABEL_TAHAP, PESAN_REFLEKS_AMBIL_ALIH } from '../data/naskah-gerbang';
+import { LABEL_BENIH, PENJELASAN_BENIH } from '../data/naskah-sistem';
+import { cariProfesi } from '../data/profesi';
 import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
 import { LembarBawah } from '../components/ui/LembarBawah';
@@ -177,6 +179,25 @@ export function LayarPapan() {
         onTutup={() => setLaporanTerbuka(false)}
       >
         <LaporanKeuangan keuangan={state.keuangan} onPilihLiabilitas={setUtangDipilih} />
+
+        {/*
+          Benih tinggal di kaki lembar Keuangan — di sinilah orang membuka
+          ketika ada angka yang terasa janggal, dan di sinilah ia butuh
+          sesuatu untuk disalin ke dalam pesan.
+
+          Ditampilkan APA ADANYA dari state, tidak pernah dirapikan ulang.
+          Benih yang dipercantik saat ditampilkan adalah benih yang salah: ia
+          tidak lagi membuka dunia yang sama.
+
+          Profesi ikut karena benih sendirian memang tidak cukup mengulang
+          permainan, dan antarmuka tidak boleh berpura-pura cukup.
+        */}
+        <div data-benih className="mt-6 border-t border-teal-muda pt-3">
+          <p className="text-xs uppercase tracking-wide text-tinta/50">{LABEL_BENIH}</p>
+          <p className="mt-1 select-all break-all font-mono text-sm text-tinta/80">{state.seed}</p>
+          <p className="text-xs text-tinta/50">{cariProfesi(state.profesiId).nama}</p>
+          <p className="mt-2 text-xs text-tinta/50">{PENJELASAN_BENIH}</p>
+        </div>
       </LembarBawah>
 
       <LayarPanen />

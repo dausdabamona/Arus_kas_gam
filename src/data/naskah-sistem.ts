@@ -12,3 +12,14 @@
  */
 export const PESAN_LOG_USANG =
   'Permainan lama tidak bisa dilanjutkan setelah pembaruan besar. Catatan jurnalmu tetap tersimpan.';
+
+/**
+ * Benih permainan. Bahasanya sengaja tidak teknis: yang perlu dimengerti
+ * pemain bukan PRNG, melainkan bahwa dunia yang sama bisa dibuka lagi — dan
+ * bahwa benih saja tidak cukup tanpa profesinya.
+ */
+export const LABEL_BENIH = 'Benih';
+export const LABEL_BENIH_BARU = 'Benih baru';
+export const PENJELASAN_BENIH =
+  'Benih dan profesi yang sama membuka dunia yang sama — angka, kartu, dan pasar yang persis sama.';
+export const PESAN_BENIH_KOSONG = 'Benih tidak boleh kosong. Tulis apa saja, atau ambil benih baru.';
