@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rupiah } from './format';
+import { rupiah, tahun } from './format';
 
 describe('rupiah', () => {
   it('menulis angka penuh tanpa singkatan', () => {
@@ -16,5 +16,16 @@ describe('rupiah', () => {
 
   it('menulis nol sebagai Rp 0', () => {
     expect(rupiah(0)).toContain('0');
+  });
+});
+
+describe('tahun', () => {
+  it('memakai koma desimal, bukan titik', () => {
+    // Di layar yang sama "Rp 3.400.000" memakai titik sebagai pemisah ribuan.
+    expect(tahun(3.2)).toBe('3,2');
+  });
+
+  it('tidak menempelkan desimal nol pada bilangan bulat', () => {
+    expect(tahun(2)).toBe('2');
   });
 });

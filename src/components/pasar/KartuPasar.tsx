@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePermainan } from '../../hooks/use-permainan';
 import { useTimerPasar } from '../../hooks/use-timer-pasar';
 import { hargaPadaKetukan } from '../../engine/pasar';
 import { cariInstrumen } from '../../data/instrumen';
 import { rupiah } from '../../lib/format';
 import { LembarBawah } from '../ui/LembarBawah';
+import { LaporanKeuangan } from '../keuangan/LaporanKeuangan';
 import { Tombol } from '../ui/Tombol';
 
 interface Props {
@@ -17,6 +18,7 @@ export function KartuPasar({ beku = false }: Props) {
   const kirim = usePermainan((t) => t.kirim);
   const memproses = usePermainan((t) => t.memproses);
   const nomorKejadian = usePermainan((t) => t.nomorKejadian);
+  const [laporanTerbuka, setLaporanTerbuka] = useState(false);
 
   const instrumenId = state?.pasarTerbuka ?? null;
 
@@ -28,7 +30,15 @@ export function KartuPasar({ beku = false }: Props) {
     });
   };
 
-  const { ketukan, detikTersisa } = useTimerPasar({ beku, onHabis: lewat });
+  // §8.1: membuka laporan MEMBEKUKAN waktu, kail yang sama dengan Jeda Batin.
+  // Timer yang tetap jalan menghukum orang yang memeriksa angka — dan
+  // mengajarkan persis kebalikan dari yang dilatih permainan ini. Ketukannya
+  // tidak diulang: melanjutkan dari angka yang sama menutup celah "buka
+  // laporan untuk memperpanjang waktu".
+  const { ketukan, detikTersisa } = useTimerPasar({
+    beku: beku || laporanTerbuka,
+    onHabis: lewat,
+  });
 
   const instrumen = instrumenId ? cariInstrumen(instrumenId) : undefined;
 
@@ -75,6 +85,10 @@ export function KartuPasar({ beku = false }: Props) {
         )}
 
         <div className="flex flex-col gap-2">
+          {/* Barisnya sendiri, sejajar tombol lain — sama seperti kartu peluang. */}
+          <Tombol jenis="kedua" lebarPenuh onClick={() => setLaporanTerbuka(true)}>
+            Keuangan
+          </Tombol>
           <Tombol onClick={() => transaksi('beli', 1)} disabled={!mampu || memproses} lebarPenuh>
             Beli 1 unit — {rupiah(harga)}
           </Tombol>
@@ -93,6 +107,15 @@ export function KartuPasar({ beku = false }: Props) {
           </Tombol>
         </div>
       </div>
+
+      {/* Membaca saja: baris utang tidak membuka lembar pelunasan di sini. */}
+      <LembarBawah
+        judul="Laporan keuangan"
+        terbuka={laporanTerbuka}
+        onTutup={() => setLaporanTerbuka(false)}
+      >
+        <LaporanKeuangan keuangan={state.keuangan} onPilihLiabilitas={() => undefined} />
+      </LembarBawah>
     </LembarBawah>
   );
 }

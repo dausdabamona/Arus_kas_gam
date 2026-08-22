@@ -200,7 +200,7 @@ export function LayarPapan() {
       {state.kartuTerbuka && !jedaTerbuka && (
         <KartuPeluangTampil
           kartu={state.kartuTerbuka}
-          saldoKas={state.keuangan.saldoKas}
+          keuangan={state.keuangan}
           memproses={memproses}
           onPutuskan={(pilihan) =>
             void kirim({
