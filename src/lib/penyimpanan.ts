@@ -1,5 +1,6 @@
 import { semuaJurnal, ringkasanPermainan } from './db';
 import { jurnalKeMarkdown } from './jurnal-markdown';
+import { simpanBerkas } from './berkas';
 
 /**
  * Meminta sistem menandai data agar tidak dibersihkan otomatis saat
@@ -46,16 +47,10 @@ export async function buatCadanganJurnal(): Promise<string> {
   );
 }
 
-/** Mengunduh cadangan jurnal ke folder Unduhan. */
+/** Menyimpan cadangan jurnal sebagai berkas .json di luar aplikasi. */
 export async function unduhCadanganJurnal(): Promise<void> {
-  const teks = await buatCadanganJurnal();
   const tanggal = new Date().toISOString().slice(0, 10);
-  const url = URL.createObjectURL(new Blob([teks], { type: 'application/json' }));
-  const tautan = document.createElement('a');
-  tautan.href = url;
-  tautan.download = `jurnal-arus-${tanggal}.json`;
-  tautan.click();
-  URL.revokeObjectURL(url);
+  await simpanBerkas(`jurnal-arus-${tanggal}.json`, await buatCadanganJurnal(), 'application/json');
 }
 
 /**
@@ -64,12 +59,7 @@ export async function unduhCadanganJurnal(): Promise<void> {
  * melanjutkan latihannya di luar aplikasi.
  */
 export async function unduhJurnalMarkdown(): Promise<void> {
-  const teks = jurnalKeMarkdown(await semuaJurnal());
   const tanggal = new Date().toISOString().slice(0, 10);
-  const url = URL.createObjectURL(new Blob([teks], { type: 'text/markdown' }));
-  const tautan = document.createElement('a');
-  tautan.href = url;
-  tautan.download = `jurnal-arus-${tanggal}.md`;
-  tautan.click();
-  URL.revokeObjectURL(url);
+  const teks = jurnalKeMarkdown(await semuaJurnal());
+  await simpanBerkas(`jurnal-arus-${tanggal}.md`, teks, 'text/markdown');
 }

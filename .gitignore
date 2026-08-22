@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Kunci penanda tangan APK — tidak pernah dikomit.
+*.keystore
+*.jks

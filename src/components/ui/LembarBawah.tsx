@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { daftarkanPenutup } from '../../lib/tombol-kembali';
 
 interface Props {
   judul: string;
@@ -15,6 +17,17 @@ interface Props {
 }
 
 export function LembarBawah({ judul, terbuka, onTutup, bisaDitutup = true, children }: Props) {
+  /*
+    Selama terbuka, lembar ini mendaftar sebagai sasaran tombol Kembali
+    Android. Lembar yang memang tidak boleh ditutup begitu saja (Lembar
+    Darurat, §5.3) sengaja tidak mendaftar: keputusan itu wajib diambil, dan
+    tombol perangkat keras bukan jalan pintas keluar darinya.
+  */
+  useEffect(() => {
+    if (!terbuka || !bisaDitutup) return;
+    return daftarkanPenutup(onTutup);
+  }, [terbuka, bisaDitutup, onTutup]);
+
   if (!terbuka) return null;
 
   return (

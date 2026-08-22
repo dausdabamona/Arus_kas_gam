@@ -1,0 +1,126 @@
+name: APK
+
+# Berkas APK dibangun DI SINI, bukan di mesin siapa pun. Lingkungan
+# pengembangan tidak bisa mengunduh Android SDK (dl.google.com ditutup oleh
+# kebijakan jaringannya), jadi runner GitHub-lah yang punya SDK-nya.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      versi:
+        description: 'Nomor versi, mis. 0.8.0'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  bangun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Gerbang yang sama dengan gerbang komit: build merah = tidak ada APK.
+      # APK dari kode yang tesnya gagal lebih buruk daripada tidak ada APK.
+      - name: Gerbang mutu
+        run: |
+          npx tsc -b
+          npm test
+          npm run lint
+
+      - name: Bangun web
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Salin aset web ke proyek Android
+        run: npx cap sync android
+
+      - name: Tentukan versi
+        id: versi
+        run: |
+          VERSI="${{ github.event.inputs.versi }}"
+          if [ -z "$VERSI" ]; then VERSI="${GITHUB_REF_NAME#v}"; fi
+          if [ -z "$VERSI" ] || [ "$VERSI" = "$GITHUB_REF_NAME" ]; then
+            VERSI=$(node -p "require('./package.json').version")
+          fi
+          echo "versi=$VERSI" >> "$GITHUB_OUTPUT"
+          echo "Versi APK: $VERSI"
+
+      # Ditandatangani rilis bila kuncinya ada; kalau tidak, APK debug yang
+      # tetap bisa dipasang. Penguji Fase 8 tidak perlu menunggu kunci dibuat.
+      - name: Siapkan kunci penanda tangan
+        id: kunci
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android/app/arus.keystore
+            echo "ada=ya" >> "$GITHUB_OUTPUT"
+          else
+            echo "ada=tidak" >> "$GITHUB_OUTPUT"
+            echo "::warning::Tanpa ANDROID_KEYSTORE_BASE64 — yang dibangun APK debug."
+          fi
+
+      - name: Bangun APK
+        working-directory: android
+        env:
+          SANDI_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ALIAS_KUNCI: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SANDI_KUNCI: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ "${{ steps.kunci.outputs.ada }}" = "ya" ]; then
+            ./gradlew assembleRelease \
+              -PversiArus=${{ steps.versi.outputs.versi }} \
+              -Pandroid.injected.signing.store.file=$PWD/app/arus.keystore \
+              -Pandroid.injected.signing.store.password="$SANDI_KEYSTORE" \
+              -Pandroid.injected.signing.key.alias="$ALIAS_KUNCI" \
+              -Pandroid.injected.signing.key.password="$SANDI_KUNCI"
+          else
+            ./gradlew assembleDebug -PversiArus=${{ steps.versi.outputs.versi }}
+          fi
+
+      - name: Beri nama yang jelas
+        id: berkas
+        run: |
+          SUMBER=$(find android/app/build/outputs/apk -name '*.apk' | head -1)
+          JENIS=$([ "${{ steps.kunci.outputs.ada }}" = "ya" ] && echo "" || echo "-debug")
+          NAMA="arus-${{ steps.versi.outputs.versi }}${JENIS}.apk"
+          cp "$SUMBER" "$NAMA"
+          echo "nama=$NAMA" >> "$GITHUB_OUTPUT"
+          ls -la "$NAMA"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.berkas.outputs.nama }}
+          path: ${{ steps.berkas.outputs.nama }}
+
+      # Hanya tag yang jadi Rilis. Jalankan-tangan cukup meninggalkan artefak,
+      # supaya percobaan tidak menumpuk jadi rilis palsu di halaman Rilis.
+      - name: Lampirkan ke Rilis
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.berkas.outputs.nama }}
+          body: |
+            **Arus ${{ steps.versi.outputs.versi }}** — berkas APK untuk Android.
+
+            Unduh berkas `.apk` di bawah langsung dari HP, lalu buka. Android
+            akan bertanya sekali soal "pasang dari sumber tidak dikenal";
+            izinkan untuk peramban yang dipakai mengunduh.
+
+            Aplikasi berjalan penuh tanpa jaringan. Tidak ada iklan, tidak ada
+            pembelian, tidak ada telemetri, dan tidak ada data yang keluar dari
+            HP kecuali kamu sendiri menekan "Simpan salinan" di layar Jurnal.
