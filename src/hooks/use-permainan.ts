@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { reduce, stateAwal, putarUlang } from '../engine/reducer';
-import { db, simpanKejadian, muatKejadian, tambahJurnal, VERSI_LOG } from '../lib/db';
+import { db, simpanKejadian, muatKejadian, tambahJurnal, simpanWaktu, VERSI_LOG } from '../lib/db';
+import { kosong, tambahJeda, type Pencatat } from '../lib/waktu';
 import { PESAN_LOG_USANG } from '../data/naskah-sistem';
 import type { Kejadian } from '../types/kejadian';
 import type { StatePermainan } from '../types/state';
@@ -20,6 +21,12 @@ interface TokoPermainan {
   memproses: boolean;
   /** Pesan tenang saat sebuah permainan tidak bisa dimuat. Null bila tidak ada. */
   galatMuat: string | null;
+  /**
+   * Catatan waktu bermain untuk uji manusia Fase 8. Tinggal di HP pemain,
+   * tidak dikirim ke mana pun (§15.3, §15.5), dan tidak menyentuh satu pun
+   * angka permainan — mesin tidak pernah melihatnya.
+   */
+  waktu: Pencatat;
   mulai: (seed: string, profesiId: string) => Promise<void>;
   kirim: (kejadian: KejadianBaru) => Promise<void>;
   muat: (permainanId: string) => Promise<void>;
@@ -33,11 +40,12 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
   nomorKejadian: 0,
   memproses: false,
   galatMuat: null,
+  waktu: kosong(),
 
   tutup() {
     // Log dan jurnalnya tetap di basis data. Menutup permainan berarti
     // melepaskannya dari layar, bukan menghapusnya — catatan itu milik pemain.
-    set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: null });
+    set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: null, waktu: kosong() });
   },
 
   async mulai(seed, profesiId) {
@@ -57,7 +65,13 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
       });
       await simpanKejadian(permainanId, awal);
 
-      set({ state: stateAwal(seed, profesiId), permainanId, nomorKejadian: 1, galatMuat: null });
+      set({
+        state: stateAwal(seed, profesiId),
+        permainanId,
+        nomorKejadian: 1,
+        galatMuat: null,
+        waktu: tambahJeda(kosong(), Date.now(), 'MULAI'),
+      });
     } finally {
       set({ memproses: false });
     }
@@ -98,7 +112,19 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
         }
       }
 
-      set({ state: reduce(state, kejadian), nomorKejadian: nomorKejadian + 1 });
+      const baru = reduce(state, kejadian);
+      const waktu = tambahJeda(get().waktu, Date.now(), kejadian.tipe);
+      set({ state: baru, nomorKejadian: nomorKejadian + 1, waktu });
+      // Ditulis tiap kejadian supaya angkanya selamat kalau aplikasi ditutup
+      // di tengah — uji manusia tidak bisa mengandalkan orang menutup dengan
+      // rapi. Satu update kecil di tabel yang sudah ada, bukan tabel baru.
+      await simpanWaktu(permainanId, {
+        msAktif: waktu.msAktif,
+        msJeda: waktu.msJeda,
+        jumlahJeda: waktu.jumlahJeda,
+        jumlahLewati: waktu.jumlahLewati,
+        giliran: baru.giliran,
+      });
     } finally {
       set({ memproses: false });
     }
@@ -110,7 +136,7 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
     // yang salah jauh lebih buruk daripada menolak dengan terang.
     const baris = await db.permainan.get(permainanId);
     if (!baris || (baris.versiLog ?? 1) !== VERSI_LOG) {
-      set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: PESAN_LOG_USANG });
+      set({ state: null, permainanId: null, nomorKejadian: 0, galatMuat: PESAN_LOG_USANG, waktu: kosong() });
       return;
     }
 
@@ -120,6 +146,9 @@ export const usePermainan = create<TokoPermainan>((set, get) => ({
       permainanId,
       nomorKejadian: daftar.length,
       galatMuat: null,
+      // Waktu tidak diputar ulang dari log: log tidak menyimpan jam dinding,
+      // dan mengarangnya dari nomor kejadian akan melaporkan angka palsu.
+      waktu: kosong(),
     });
   },
 }));

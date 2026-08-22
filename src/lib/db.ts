@@ -23,6 +23,16 @@ export interface BarisPermainan {
   status: 'berjalan' | 'selesai';
   /** Kosong pada baris yang direkam sebelum kolom ini ada — setara versi 1. */
   versiLog?: number;
+  /**
+   * Catatan waktu untuk uji manusia Fase 8 (§1.4). Tidak diindeks, tidak
+   * dikirim ke mana pun, dan tidak menentukan apa pun di dalam permainan —
+   * hanya ikut saat pemain sendiri menyimpan salinan jurnalnya.
+   */
+  msAktif?: number;
+  msJeda?: number;
+  jumlahJeda?: number;
+  jumlahLewati?: number;
+  giliran?: number;
 }
 
 export interface BarisKejadian {
@@ -77,6 +87,19 @@ export async function hapusPermainan(permainanId: string): Promise<void> {
     await db.kejadian.where('permainanId').equals(permainanId).delete();
     await db.permainan.delete(permainanId);
   });
+}
+
+/** Menyimpan catatan waktu permainan. Ditimpa, bukan ditumpuk. */
+export async function simpanWaktu(
+  permainanId: string,
+  waktu: Pick<BarisPermainan, 'msAktif' | 'msJeda' | 'jumlahJeda' | 'jumlahLewati' | 'giliran'>,
+): Promise<void> {
+  await db.permainan.update(permainanId, waktu);
+}
+
+/** Ringkasan tiap permainan untuk berkas cadangan — tanpa apa pun tentang orangnya. */
+export async function ringkasanPermainan(): Promise<BarisPermainan[]> {
+  return db.permainan.orderBy('dibuatPada').toArray();
 }
 
 export async function tambahJurnal(entri: EntriJurnal): Promise<void> {

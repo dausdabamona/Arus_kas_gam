@@ -100,7 +100,7 @@ describe('cadangan jurnal (§4.6.2)', () => {
       'Dari permainan kedua.',
       'Dari permainan pertama.',
     ]);
-    expect(cadangan.versi).toBe(1);
+    expect(cadangan.versi).toBe(2);  // versi 2: ringkasan permainan ikut, untuk uji manusia Fase 8
   });
 
   it('teksnya benar-benar JSON yang bisa dibaca ulang', async () => {

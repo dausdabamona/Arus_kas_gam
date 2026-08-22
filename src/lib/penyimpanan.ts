@@ -1,4 +1,4 @@
-import { semuaJurnal } from './db';
+import { semuaJurnal, ringkasanPermainan } from './db';
 import { jurnalKeMarkdown } from './jurnal-markdown';
 
 /**
@@ -32,7 +32,15 @@ export async function statusPenyimpanan(): Promise<{
 /** Cadangan jurnal dalam bentuk teks JSON. */
 export async function buatCadanganJurnal(): Promise<string> {
   return JSON.stringify(
-    { versi: 1, dibuatPada: Date.now(), jurnal: await semuaJurnal() },
+    {
+      versi: 2,
+      dibuatPada: Date.now(),
+      jurnal: await semuaJurnal(),
+      // Ringkasan permainan ikut sejak versi 2, untuk uji manusia Fase 8:
+      // durasi §1.4 tidak bisa diukur simulator. Tidak ada apa pun tentang
+      // orangnya di sini — cuma benih, profesi, giliran, dan waktu.
+      permainan: await ringkasanPermainan(),
+    },
     null,
     2,
   );

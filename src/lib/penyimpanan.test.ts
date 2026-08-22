@@ -51,7 +51,7 @@ describe('buatCadanganJurnal', () => {
     });
     const teks = await buatCadanganJurnal();
     const isi = JSON.parse(teks);
-    expect(isi.versi).toBe(1);
+    expect(isi.versi).toBe(2);  // versi 2: ringkasan permainan ikut, untuk uji manusia Fase 8
     expect(isi.jurnal).toHaveLength(1);
     expect(isi.jurnal[0].kebutuhan).toBe('keamanan');
   });
