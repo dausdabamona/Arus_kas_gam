@@ -74,6 +74,17 @@ export function LayarGerbang() {
                   const kartu = cariKartuKebiasaan(berjalan.id);
                   return (
                     <li key={kartu.id} className="rounded-xl bg-teal-muda/50 p-3">
+              {/*
+                HIERARKI TIGA BARIS — NADA, BUKAN SEKADAR WARNA.
+                nama (tebal) -> keterangan (tinta pudar) -> caraLepas (tinta penuh).
+
+                Cara-lepas WAJIB bertinta lebih penuh daripada keterangan, sebab
+                mata membaca yang paling gelap lebih dulu: pemain melihat jalan
+                keluarnya sebelum melihat cacatnya. Membalik dua baris ini
+                membalik nada seluruh layar dari "ini pekerjaannya" menjadi "ini
+                yang salah padamu" — tanpa satu kata pun berubah, dan tanpa satu
+                tes kata pun menyala.
+              */}
                       <p className="font-semibold text-teal-tua">{kartu.nama}</p>
                       <p className="mt-1 text-sm text-tinta/70">{kartu.keterangan}</p>
                       <p className="mt-2 text-sm text-tinta">{kartu.caraLepas}</p>

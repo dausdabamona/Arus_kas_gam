@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { usePermainan } from '../hooks/use-permainan';
-import { hitungLaporan, lolosTahapSatu, perluTindakanDarurat } from '../engine/keuangan';
+import { perluTindakanDarurat } from '../engine/keuangan';
 import { Papan } from '../components/papan/Papan';
 import { KartuPeluangTampil } from '../components/papan/KartuPeluangTampil';
 import { GarisArus } from '../components/keuangan/GarisArus';
@@ -12,6 +12,8 @@ import { JedaBatin } from '../components/jeda/JedaBatin';
 import { LayarPanen } from '../components/jeda/LayarPanen';
 import { cariKartuGuncang } from '../data/kartu-guncang';
 import { cariInstrumen } from '../data/instrumen';
+import { PitaKebiasaan } from '../components/papan/PitaKebiasaan';
+import { LABEL_TAHAP, PESAN_REFLEKS_AMBIL_ALIH } from '../data/naskah-gerbang';
 import { LembarDarurat } from '../components/keuangan/LembarDarurat';
 import { LembarPelunasan } from '../components/keuangan/LembarPelunasan';
 import { LembarBawah } from '../components/ui/LembarBawah';
@@ -72,23 +74,50 @@ export function LayarPapan() {
 
   const jedaTerbuka = pemicu !== null && pemicu.id !== pemicuSelesai;
 
-  const lolos = lolosTahapSatu(hitungLaporan(state.keuangan));
   const darurat = perluTindakanDarurat(state.keuangan);
   const daduTerakhir = state.riwayatDadu.at(-1);
 
   return (
     <main className="mx-auto max-w-md p-5 pb-28">
       <header className="flex items-baseline justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-tinta/50">Lingkar Harian</p>
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-tinta/50">
+            {LABEL_TAHAP[state.tahap]}
+          </p>
           <p className="text-sm tabular-nums text-tinta/60">Giliran {state.giliran}</p>
         </div>
         <Uang nilai={state.keuangan.saldoKas} berwarna />
       </header>
 
+      {/*
+        Niat dimunculkan kembali persis di layar tempat angka besar paling
+        menarik (§7.1). Satu baris tenang yang selalu ada, bukan pengingat
+        yang menyela.
+      */}
+      {state.tahap === 'luas' && state.niat && (
+        <p className="mt-2 border-l-2 border-teal/40 pl-2 text-sm italic text-tinta/60">
+          {state.niat}
+        </p>
+      )}
+
       <div className="mt-5">
         <GarisArus keuangan={state.keuangan} />
       </div>
+
+      {state.refleksMengambilAlih && (
+        <p
+          aria-live="polite"
+          className="mt-4 rounded-lg bg-amber-muda px-3 py-3 text-sm text-tinta/80"
+        >
+          {PESAN_REFLEKS_AMBIL_ALIH}
+        </p>
+      )}
+
+      {state.kebiasaan.length > 0 && (
+        <div className="mt-5">
+          <PitaKebiasaan kebiasaan={state.kebiasaan} />
+        </div>
+      )}
 
       <div className="mt-5">
         <Papan posisi={state.posisi} />
@@ -101,12 +130,6 @@ export function LayarPapan() {
       {state.pasarTerbuka && <KartuPasar beku={jedaTerbuka} />}
 
       {darurat && <LembarDarurat />}
-
-      {lolos && (
-        <p className="mt-4 rounded-lg bg-teal-muda px-3 py-3 text-sm font-semibold text-teal-tua">
-          Pendapatan pasif sudah menutup pengeluaran. Lingkar Luas menunggu.
-        </p>
-      )}
 
       <div className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md gap-2 bg-ivory p-4">
         <Tombol

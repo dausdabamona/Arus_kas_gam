@@ -9,6 +9,7 @@ const KOMPONEN = [
   'src/components/jeda/LayarPanen.tsx',
   'src/components/papan/KartuGuncangTampil.tsx',
   'src/screens/LayarGerbang.tsx',
+  'src/components/papan/PitaKebiasaan.tsx',
 ];
 
 /** Semua kalimat yang benar-benar ada di naskah, untuk dibandingkan. */

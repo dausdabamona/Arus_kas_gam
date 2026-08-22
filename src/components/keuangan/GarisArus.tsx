@@ -10,7 +10,6 @@ export function GarisArus({ keuangan }: Props) {
   const pasif = Math.max(0, laporan.pendapatanPasif);
   const keluar = Math.max(1, laporan.totalPengeluaran);
   const rasio = Math.min(1, pasif / keluar);
-  const lolos = pasif >= laporan.totalPengeluaran;
 
   return (
     <section aria-label="Perbandingan pendapatan pasif dan pengeluaran">
@@ -31,11 +30,13 @@ export function GarisArus({ keuangan }: Props) {
         <span className="text-amber">{rupiah(laporan.totalPengeluaran)}</span>
       </div>
 
-      {lolos && (
-        <p className="mt-3 rounded-lg bg-teal-muda px-3 py-2 text-sm font-semibold text-teal-tua">
-          Pendapatan pasif sudah menutup seluruh pengeluaran.
-        </p>
-      )}
+      {/*
+        Spanduk "pendapatan pasif sudah menutup pengeluaran" DIHAPUS di Fase 6.
+        Sejak Gerbang Niat berdiri, syarat lolos memindahkan pemain ke layar
+        lain, jadi di Lingkar Harian ia tidak pernah sempat terlihat; di Lingkar
+        Luas ia menyala terus, mengumumkan tonggak yang sudah lama dilewati.
+        Garisnya sendiri sudah mengatakannya tanpa kata.
+      */}
     </section>
   );
 }

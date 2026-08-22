@@ -381,6 +381,10 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
         riwayatDadu: [...state.riwayatDadu, mata],
         hargaPasar: hargaBaru,
         hargaPasarLalu: state.hargaPasar,
+        // Penanda refleks milik giliran tempat ia terjadi. Membiarkannya
+        // menempel membuat pemain membaca "refleks lama bergerak" berkali-kali
+        // untuk satu kejadian yang sudah lewat.
+        refleksMengambilAlih: null,
         keuangan: nilaiUlangAsetKartu(
           nilaiUlangAsetPasar(
             { ...state.keuangan, saldoKas: state.keuangan.saldoKas + arus * gajian },

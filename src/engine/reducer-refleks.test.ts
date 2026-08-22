@@ -243,3 +243,13 @@ describe('JEDA_BATIN memajukan pelepasan yang cocok', () => {
     expect(sesudah.kebiasaan[0].kemajuan).toBe(0);
   });
 });
+
+describe('penanda refleks milik gilirannya sendiri', () => {
+  it('padam saat dadu dilempar lagi', () => {
+    const sesudah = reduce(
+      { ...diLuas({ kebiasaan: [aktif('refleks-kejar')] }), refleksMengambilAlih: 'refleks-kejar' },
+      { t: 9, tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } },
+    );
+    expect(sesudah.refleksMengambilAlih).toBeNull();
+  });
+});
