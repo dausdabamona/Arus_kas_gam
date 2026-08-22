@@ -12,15 +12,18 @@
  * menyalinnya dari sebuah pesan.
  */
 
-/** Cuaca dan langit. */
+/**
+ * Cuaca dan langit. Kata bermuatan muram sengaja tidak ada di sini: benih
+ * muncul bersebelahan dengan hasil permainan, dan "mendung" atau "badai" di
+ * posisi itu terbaca seperti keterangan gambar, bukan seperti nama.
+ */
 const CUACA = [
-  'kabut', 'embun', 'fajar', 'senja', 'hujan', 'angin', 'awan', 'mendung',
-  'petir', 'pelangi', 'gerimis', 'bayu', 'bintang', 'bulan', 'purnama', 'sabit',
-  'cahaya', 'kilat', 'badai', 'teduh', 'terang', 'redup', 'subuh', 'pagi',
-  'petang', 'malam', 'dingin', 'hangat', 'sejuk', 'lembap', 'kemarau', 'musim',
-  'langit', 'ufuk', 'mega', 'halimun', 'rembulan', 'matahari', 'kemilau',
-  'sinar', 'angkasa', 'lintang', 'sepoi', 'semilir', 'rinai', 'surya',
-  'candra', 'kartika',
+  'kabut', 'embun', 'fajar', 'senja', 'hujan', 'angin', 'awan', 'pelangi',
+  'gerimis', 'bayu', 'bintang', 'bulan', 'purnama', 'sabit', 'cahaya', 'kilat',
+  'teduh', 'terang', 'subuh', 'pagi', 'petang', 'malam', 'hangat', 'sejuk',
+  'musim', 'langit', 'ufuk', 'mega', 'halimun', 'rembulan', 'matahari',
+  'kemilau', 'sinar', 'angkasa', 'lintang', 'sepoi', 'semilir', 'rinai',
+  'surya', 'candra', 'kartika', 'bianglala', 'mentari', 'kejora', 'cakrawala',
 ] as const;
 
 /** Satwa, banyak di antaranya dari timur Indonesia. */
@@ -29,7 +32,7 @@ const SATWA = [
   'anoa', 'kasuari', 'bangau', 'walet', 'jalak', 'kutilang', 'murai', 'tekukur',
   'belibis', 'pelanduk', 'landak', 'musang', 'kelinci', 'duyung', 'hiu', 'pari',
   'kakap', 'kerapu', 'tenggiri', 'cakalang', 'tongkol', 'teri', 'udang',
-  'kerang', 'siput', 'kunang', 'capung', 'kupu', 'lebah', 'nuri', 'kakatua',
+  'kerang', 'siput', 'belida', 'capung', 'sidat', 'lebah', 'nuri', 'kakatua',
   'mambruk', 'julang', 'rangkong', 'kuskus', 'kanguru', 'walabi', 'komodo',
   'biawak', 'tarsius',
 ] as const;
@@ -40,7 +43,7 @@ const TUMBUHAN = [
   'matoa', 'kelapa', 'nipah', 'gaharu', 'kenanga', 'melati', 'cempaka',
   'teratai', 'bambu', 'jati', 'ulin', 'sengon', 'mahoni', 'akasia', 'waru',
   'ketapang', 'beringin', 'randu', 'kemiri', 'pinang', 'sirih', 'kunyit',
-  'jahe', 'lengkuas', 'serai', 'lumut', 'anggrek', 'pakis', 'alang', 'ilalang',
+  'jahe', 'lengkuas', 'serai', 'lumut', 'anggrek', 'pakis', 'kenari', 'ilalang',
   'rumbia', 'sukun', 'langsat', 'duku', 'rambutan', 'salak', 'kecapi',
   'gandaria', 'jambu', 'kemuning',
 ] as const;

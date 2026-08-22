@@ -43,3 +43,46 @@ describe('daftar kata benih siap diketik manusia', () => {
     expect(ruang).toBeGreaterThan(50_000);
   });
 });
+
+/**
+ * Penjaga nada dan kesetiaan (Peran 4). Benih muncul di layar mulai DAN kelak
+ * di Ringkasan Akhir — bersebelahan dengan kalimat seperti "bangkrut di
+ * giliran 34". Kata bermuatan muram di posisi itu terbaca seperti keterangan
+ * gambar, bukan seperti nama.
+ *
+ * Ini penilaian, bukan pengukuran. Daftarnya ditulis terang supaya keputusannya
+ * bisa dibantah, bukan supaya kelihatan objektif.
+ */
+describe('kosakata benih tidak ikut berkomentar', () => {
+  const BERMUATAN = [
+    'mendung', 'redup', 'badai', 'petir', 'kemarau', 'dingin',
+    'gelap', 'suram', 'murung', 'sepi', 'hilang', 'jatuh', 'rugi',
+  ];
+
+  it.each(BERMUATAN)('tidak memuat kata "%s"', (kata) => {
+    expect(KATA_BENIH.flat()).not.toContain(kata);
+  });
+
+  /**
+   * Kata yang di bahasa sehari-hari hanya hidup dalam bentuk ulang. Penyalin
+   * yang membaca "kupu" akan membetulkannya jadi "kupu-kupu" — dan benih yang
+   * dibetulkan adalah benih yang salah. Bentuk tunggalnya tampak seperti salah
+   * ketik justru karena memang tidak pernah dipakai sendirian.
+   */
+  it.each(['kupu', 'kunang', 'alang', 'ubur', 'laba', 'anai'])(
+    'tidak memuat "%s" yang hanya hidup sebagai kata ulang',
+    (kata) => {
+      expect(KATA_BENIH.flat()).not.toContain(kata);
+    },
+  );
+
+  /**
+   * Ejaannya masih diperdebatkan penutur aslinya (lembap/lembab). Benih yang
+   * dieja dua cara adalah benih yang gagal dibuka separuh waktu.
+   */
+  it('tidak memuat kata yang ejaannya masih berdua', () => {
+    for (const kata of ['lembap', 'lembab', 'praktik', 'praktek', 'nasihat', 'nasehat']) {
+      expect(KATA_BENIH.flat()).not.toContain(kata);
+    }
+  });
+});

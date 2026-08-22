@@ -21,5 +21,5 @@ export const PESAN_LOG_USANG =
 export const LABEL_BENIH = 'Benih';
 export const LABEL_BENIH_BARU = 'Benih baru';
 export const PENJELASAN_BENIH =
-  'Benih dan profesi yang sama membuka dunia yang sama — angka, kartu, dan pasar yang persis sama.';
-export const PESAN_BENIH_KOSONG = 'Benih tidak boleh kosong. Tulis apa saja, atau ambil benih baru.';
+  'Dunia permainan tumbuh dari benih ini. Benih dan profesi yang sama membukanya lagi, persis.';
+export const PESAN_BENIH_KOSONG = 'Benih masih kosong. Tulis apa saja, atau ambil benih baru.';
