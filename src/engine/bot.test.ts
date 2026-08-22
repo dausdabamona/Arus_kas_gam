@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { reduce, stateAwal } from './reducer';
 import { cariKartuGuncang } from '../data/kartu-guncang';
 import type { StatePermainan } from '../types/state';
+import type { Kejadian } from '../types/kejadian';
 
 function maju(state: StatePermainan, giliran: number): StatePermainan {
   let s = state;
@@ -76,6 +77,48 @@ describe('INVARIAN ISOLASI — bot tidak pernah menyentuh pemain', () => {
     expect(dengan.keuangan).toEqual(tanpa.keuangan);
     expect(dengan.hargaPasar).toEqual(tanpa.hargaPasar);
     expect(dengan.riwayatDadu).toEqual(tanpa.riwayatDadu);
+  });
+});
+
+/**
+ * `maju()` hanya melempar dadu dan menutup tawaran, jadi ia tidak pernah
+ * menyentuh Gerbang Niat — `tahap`, `niat`, dan `kebiasaan` dibandingkan dalam
+ * keadaan kosong di kedua lengan, dan pembandingannya hampa untuk ketiganya.
+ *
+ * Di sini ketiganya benar-benar diisi: kedua lengan dipaksa lolos, menulis
+ * niat, dan masuk Lingkar Luas membawa kartu kebiasaan.
+ */
+describe('INVARIAN ISOLASI — tahap dua pun tidak disentuh bot', () => {
+  function masukLuas(state: StatePermainan): StatePermainan {
+    const lolos: StatePermainan = {
+      ...state,
+      skor: { keputusanTenang: 2, keputusanBertekanan: 9 },
+      keuangan: {
+        ...state.keuangan,
+        aset: [
+          { id: 'kos-besar-0', nama: 'Kos besar', nilai: 900_000_000, arusKasBulanan: 20_000_000 },
+        ],
+      },
+    };
+    const langkah: Kejadian[] = [
+      { t: 900, tipe: 'GERBANG_NIAT', isi: { niat: 'Menemani anak tumbuh.' } },
+      { t: 901, tipe: 'MASUK_LINGKAR_LUAS', isi: {} },
+    ];
+    return langkah.reduce(reduce, lolos);
+  }
+
+  it('tahap, niat, dan kartu kebiasaan identik dengan atau tanpa bot', () => {
+    const dengan = masukLuas(maju(stateAwal('isolasi-luas', 'asn-3b'), 30));
+    const tanpa = masukLuas(maju({ ...stateAwal('isolasi-luas', 'asn-3b'), bot: [] }, 30));
+
+    // Pembandingan hanya berarti kalau bidangnya benar-benar terisi.
+    expect(dengan.tahap).toBe('luas');
+    expect(dengan.kebiasaan.length).toBeGreaterThan(0);
+
+    expect(dengan.tahap).toBe(tanpa.tahap);
+    expect(dengan.niat).toBe(tanpa.niat);
+    expect(dengan.kebiasaan).toEqual(tanpa.kebiasaan);
+    expect({ ...dengan, bot: [] }).toEqual({ ...tanpa, bot: [] });
   });
 });
 

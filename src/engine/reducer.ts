@@ -1,5 +1,5 @@
 import { prngUntuk, buatPrng } from './prng';
-import { lemparDadu, bilanganAcak, ambilSatu } from './acak';
+import { lemparDadu, bilanganAcak, ambilSatu, kocok } from './acak';
 import { petakDi, posisiSetelah, hitungGajianDilewati } from './papan';
 import {
   arusKasBulanan,
@@ -22,6 +22,8 @@ import { komentarUntuk, momenDari } from './komentar';
 import { KARTU_PELUANG_KECIL, KARTU_PELUANG_BESAR, cariKartu } from '../data/kartu-peluang';
 import { INSTRUMEN, cariInstrumen } from '../data/instrumen';
 import { KARTU_GUNCANG, cariKartuGuncang } from '../data/kartu-guncang';
+import { KARTU_KEBIASAAN } from '../data/kartu-kebiasaan';
+import { ringkasKemerdekaan } from './kemerdekaan';
 import { PROFIL_BOT } from '../data/bot';
 import { cariProfesi } from '../data/profesi';
 import type { Kejadian } from '../types/kejadian';
@@ -123,6 +125,9 @@ export function stateAwal(seed: string, profesiId: string, denganBot = true): St
     tanamTertunda: [],
     panenTerbuka: null,
     skor: { keputusanBertekanan: 0, keputusanTenang: 0 },
+    tahap: 'harian',
+    niat: null,
+    kebiasaan: [],
     bot: denganBot ? botAwal(seed, (s, p) => stateAwal(s, p, false)) : [],
   };
 }
@@ -612,6 +617,32 @@ export function reduce(state: StatePermainan, kejadian: Kejadian): StatePermaina
 
     case 'TUAI':
       return { ...state, panenTerbuka: null };
+
+    case 'GERBANG_NIAT': {
+      // Niat kosong tidak disimpan: gerbang yang bisa dilewati dengan spasi
+      // bukan gerbang. UI menonaktifkan tombolnya, mesin menolak lagi di sini.
+      const niat = kejadian.isi.niat.trim();
+      return niat.length === 0 ? state : { ...state, niat };
+    }
+
+    case 'MASUK_LINGKAR_LUAS': {
+      if (state.tahap !== 'harian') return state;
+      if (state.niat === null) return state;
+      if (!lolosTahapSatu(hitungLaporan(state.keuangan))) return state;
+
+      // Kartu dikocok, bukan dipilih menurut kelemahan pemain. Memilih kartu
+      // "yang paling relevan" berarti mesin menyimpulkan sesuatu tentang
+      // orangnya dari angka — dan §7.2 menempatkan kartu ini sebagai keadaan
+      // awal yang jujur, bukan diagnosis. Kocokan murni cukup untuk fase ini.
+      const jumlah = ringkasKemerdekaan(state.skor).kartuKebiasaan;
+      const terpilih = kocok(buatPrng(`${state.seed}#kebiasaan`), KARTU_KEBIASAAN).slice(0, jumlah);
+
+      return {
+        ...state,
+        tahap: 'luas',
+        kebiasaan: terpilih.map((k) => ({ id: k.id, kemajuan: 0, lepas: false })),
+      };
+    }
 
     case 'LUNASI':
       return {

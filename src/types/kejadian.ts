@@ -40,6 +40,7 @@ export type Kejadian =
   | { t: number; tipe: 'TANAM'; isi: { kalimat: string; tindakan: string; panenPadaGiliran: number } }
   | { t: number; tipe: 'TUAI'; isi: { tanamT: number; hasilLuar: number; hasilDalam: 'tenang' | 'tersulut' } }
   | { t: number; tipe: 'GERBANG_NIAT'; isi: { niat: string } }
+  | { t: number; tipe: 'MASUK_LINGKAR_LUAS'; isi: Record<string, never> }
   | { t: number; tipe: 'AKHIR'; isi: { alasan: 'lolos' | 'menyerah' | 'bangkrut' } };
 
 export type TipeKejadian = Kejadian['tipe'];

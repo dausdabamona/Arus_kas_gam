@@ -49,8 +49,23 @@ export interface StatePermainan {
    * Pembagi nol dihitung sebagai skor penuh: tidak pernah diuji bukanlah kegagalan.
    */
   skor: { keputusanBertekanan: number; keputusanTenang: number };
+  /** Tahap permainan (§7). Lingkar Luas dimasuki lewat Gerbang Niat. */
+  tahap: 'harian' | 'luas';
+  /** Kalimat niat yang ditulis di Gerbang. Null sebelum ditulis. */
+  niat: string | null;
+  /**
+   * Kartu Kebiasaan Lama yang terbawa ke Lingkar Luas, beserta kemajuan syarat
+   * lepasnya. BUKAN daftar hukuman: tiap kartu punya jalan keluar (§7.2).
+   */
+  kebiasaan: KebiasaanBerjalan[];
   /** Dunia tiga bot. Kosong di dalam dunia bot itu sendiri — tidak bersarang. */
   bot: BotBerjalan[];
+}
+
+export interface KebiasaanBerjalan {
+  id: string;
+  kemajuan: number;
+  lepas: boolean;
 }
 
 export interface RiwayatDitolak {
