@@ -102,6 +102,61 @@ jobs:
           echo "nama=$NAMA" >> "$GITHUB_OUTPUT"
           ls -la "$NAMA"
 
+      # Sidik jari kunci penanda tangan, dicetak setiap kali.
+      #
+      # Android menolak memasang pembaruan yang ditandatangani kunci berbeda,
+      # dan pesannya di HP tidak menyebut tanda tangan sama sekali: "paket ini
+      # bentrok dengan paket yang sudah ada". Tanpa angka ini, sebabnya cuma
+      # bisa ditebak.
+      #
+      # Build DEBUG tidak punya kunci tetap: Gradle membuat debug.keystore baru
+      # di runner yang bersih setiap kali, jadi tiap jalannya menghasilkan
+      # kunci yang berlainan. Dua APK debug dari dua jalan yang berbeda TIDAK
+      # bisa saling memperbarui, sekalipun kodenya sama.
+      - name: Catat sidik jari kunci
+        run: |
+          NAMA="${{ steps.berkas.outputs.nama }}"
+          # apksigner lebih dulu: dengan minSdk 24, AGP boleh menandatangani
+          # hanya dengan skema v2/v3, dan `keytool -jarfile` menolak APK
+          # semacam itu ("not a signed jar file"). keytool jadi cadangan.
+          SIDIK=""
+          ALAT=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1) || true
+          if [ -n "$ALAT" ]; then
+            SIDIK=$("$ALAT" verify --print-certs "$NAMA" 2>/dev/null \
+              | grep -m1 -i 'SHA-256 digest' | sed 's/.*: *//') || true
+          fi
+          if [ -z "$SIDIK" ]; then
+            SIDIK=$(keytool -printcert -jarfile "$NAMA" 2>/dev/null \
+              | grep -m1 'SHA256:' | sed 's/.*SHA256: *//') || true
+          fi
+          # Langkah ini melaporkan, tidak menjaga. APK yang sudah jadi tidak
+          # boleh hangus cuma karena sidik jarinya tidak terbaca.
+          [ -n "$SIDIK" ] || SIDIK="(tidak terbaca)"
+          {
+            echo "### $NAMA"
+            echo
+            echo "Sidik jari kunci (SHA-256):"
+            echo
+            echo '```'
+            echo "$SIDIK"
+            echo '```'
+            echo
+            if [ "${{ steps.kunci.outputs.ada }}" = "ya" ]; then
+              echo "Ditandatangani kunci rilis. Selama rahasianya tidak diganti,"
+              echo "sidik jari ini tetap sama dan pembaruan bisa dipasang di atas"
+              echo "versi sebelumnya."
+            else
+              echo "**APK debug — kuncinya berbeda di setiap jalan alur kerja.**"
+              echo
+              echo "Kalau HP menolak dengan \"paket ini bentrok dengan paket yang"
+              echo "sudah ada\", itu sebabnya. Copot dulu yang lama, lalu pasang."
+              echo "Ekspor jurnal sebelum mencopot — mencopot menghapus datanya."
+              echo
+              echo "Pasang \`ANDROID_KEYSTORE_BASE64\` dan tiga rahasia lainnya"
+              echo "untuk menghentikan ini selamanya (lihat docs/APK-android.md)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.berkas.outputs.nama }}

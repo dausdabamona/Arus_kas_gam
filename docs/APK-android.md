@@ -35,18 +35,55 @@ Android menolak memasang APK dengan `versionCode` lebih rendah dari yang
 terpasang, jadi angka ini wajib naik — dan karena diturunkan dari `package.json`,
 ia tidak bisa berselisih dengan nomor versi yang tertulis di tempat lain.
 
-## Menandatangani (opsional, tapi lakukan sebelum dibagikan luas)
+## "Aplikasi tidak diinstal karena paket ini bentrok dengan paket yang sudah ada"
+
+Pesan ini muncul saat memasang versi baru di atas versi lama. Ia tidak menyebut
+tanda tangan sama sekali, padahal itulah sebabnya: Android menolak pembaruan
+yang ditandatangani kunci berbeda, dan **APK debug tidak punya kunci tetap.**
+Gradle membuat `debug.keystore` baru di runner yang selalu bersih, jadi setiap
+jalan alur kerja menghasilkan kunci yang berlainan. Dua APK debug dari dua
+jalan yang berbeda tidak bisa saling memperbarui, sekalipun kodenya sama.
+
+Sidik jari kuncinya sekarang tercetak di ringkasan tiap jalan alur kerja
+(Actions → jalan yang dipilih → kotak ringkasan di atas). Dua sidik jari yang
+berbeda memastikan sebabnya dalam sekali lihat.
+
+**Jalan keluar sekarang:** copot Arus yang lama, lalu pasang yang baru.
+
+**Ekspor jurnal dulu sebelum mencopot.** Jurnal lintas sesi (§12) tinggal di
+IndexedDB, dan mencopot aplikasi menghapusnya bersama permainan yang sedang
+berjalan. Buka Jurnal → **Simpan salinan**, simpan berkasnya, baru copot.
+
+**Jalan keluar seterusnya:** pasang kunci rilis di bawah. Sesudah itu setiap
+APK ditandatangani kunci yang sama, dan pembaruan berikutnya cukup dipasang di
+atas yang lama tanpa mencopot apa pun.
+
+## Menandatangani (lakukan sekali; tanpa ini setiap pembaruan menuntut copot-pasang)
 
 Tanpa kunci, alur kerjanya membangun **APK debug**. Ia bisa dipasang dan
-berjalan penuh — cukup untuk uji manusia Fase 8 bersama orang yang sudah
-dikenal — tapi ia menyandang `debuggable`, dan Play Protect lebih cerewet
-terhadapnya. Untuk dibagikan lebih luas, buat kunci sekali:
+berjalan penuh, tapi ia menyandang `debuggable`, Play Protect lebih cerewet
+terhadapnya, dan kuncinya berganti tiap jalan — lihat bagian di atas. Buat
+kunci sekali:
+
+`keytool` ikut dalam JDK mana pun (juga dalam Android Studio). Di Linux/macOS:
 
 ```
 keytool -genkey -v -keystore arus.keystore -alias arus \
   -keyalg RSA -keysize 2048 -validity 10000
 base64 -w0 arus.keystore
 ```
+
+Di Windows PowerShell, baris keduanya berbeda:
+
+```
+keytool -genkey -v -keystore arus.keystore -alias arus `
+  -keyalg RSA -keysize 2048 -validity 10000
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("arus.keystore")) | Set-Clipboard
+```
+
+**Jangan pernah membuat kunci ini lewat alur kerja GitHub.** Log Actions terbaca
+siapa pun yang bisa melihat repositori, dan kunci yang pernah tercetak di sana
+sudah bocor selamanya.
 
 Simpan empat rahasia di Settings → Secrets and variables → Actions:
 
@@ -57,10 +94,11 @@ Simpan empat rahasia di Settings → Secrets and variables → Actions:
 | `ANDROID_KEY_ALIAS` | `arus` |
 | `ANDROID_KEY_PASSWORD` | sandi kunci |
 
-**Simpan berkas `arus.keystore` baik-baik dan jangan pernah dikomit.** Kalau
-kuncinya hilang, semua orang yang sudah memasang harus mencopot dulu sebelum
-bisa memasang versi berikutnya: Android menolak pembaruan yang ditandatangani
-kunci berbeda.
+**Simpan berkas `arus.keystore` baik-baik dan jangan pernah dikomit.** Ia
+identitas aplikasi ini selamanya. Kalau kuncinya hilang, semua orang yang sudah
+memasang harus mencopot dulu — dan kehilangan jurnalnya — sebelum bisa memasang
+versi berikutnya. `.gitignore` sudah menolak `*.keystore` dan `*.jks`, tapi itu
+jaring pengaman, bukan tempat penyimpanan.
 
 ## Cara memasang di HP
 
@@ -109,7 +147,10 @@ Periksa ini pada pemasangan pertama, sebelum membagikannya ke penguji:
 
 - [ ] Aplikasi terbuka dan menampilkan Layar Mulai
 - [ ] Ikonnya huruf A ivory di atas teal, bukan logo bawaan Capacitor
-- [ ] "Simpan salinan" di layar Jurnal benar-benar menghasilkan berkas
+- [ ] "Simpan salinan" di layar Jurnal benar-benar menghasilkan berkas —
+      **periksa ini lebih dulu dari yang lain.** Selama kuncinya masih debug,
+      setiap pembaruan menuntut copot-pasang, dan mencopot menghapus jurnal.
+      Ekspor adalah satu-satunya jalan membawa catatan menyeberangi pembaruan.
 - [ ] Tombol Kembali menutup lembar, bukan aplikasi
 - [ ] Permainan bertahan sesudah aplikasi ditutup lalu dibuka lagi
 - [ ] Izin `INTERNET` masih tercantum di manifest. Aplikasi ini tidak butuh
