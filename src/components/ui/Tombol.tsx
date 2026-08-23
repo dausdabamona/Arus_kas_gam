@@ -6,6 +6,13 @@ interface Props {
   jenis?: 'utama' | 'kedua' | 'bahaya';
   disabled?: boolean;
   lebarPenuh?: boolean;
+  /**
+   * Menolak menyusut di dalam baris flex. Dipakai pada tombol berlabel satu
+   * kata yang berdampingan dengan tombol `lebarPenuh`: `w-full` meminta
+   * seluruh baris dan tetangganya yang menanggung, sementara label satu kata
+   * tidak bisa membungkus ke baris kedua — ia hanya terpotong.
+   */
+  takMenyusut?: boolean;
 }
 
 const GAYA = {
@@ -20,6 +27,7 @@ export function Tombol({
   jenis = 'utama',
   disabled = false,
   lebarPenuh = false,
+  takMenyusut = false,
 }: Props) {
   return (
     <button
@@ -32,6 +40,7 @@ export function Tombol({
         'disabled:opacity-40',
         GAYA[jenis],
         lebarPenuh ? 'w-full' : '',
+        takMenyusut ? 'shrink-0' : '',
       ].join(' ')}
     >
       {children}

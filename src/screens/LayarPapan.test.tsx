@@ -63,3 +63,27 @@ describe('tombol lempar dadu', () => {
     expect(tombolDadu().disabled).toBe(true);
   });
 });
+
+/**
+ * Diukur di peramban pada empat lebar ponsel: kotak tombol "Keuangan" hanya
+ * 93-101px sementara labelnya butuh 110px. Labelnya terpotong di SEMUA lebar,
+ * dan memang terlihat terpotong di tangkapan layar HP.
+ *
+ * Sebabnya `lebarPenuh` pada tombol dadu: `w-full` meminta seluruh baris, dan
+ * tetangganya yang menanggung. "Keuangan" satu kata, jadi ia tidak bisa
+ * membungkus ke baris kedua — ia hanya terpotong.
+ */
+describe('bilah bawah muat di layar ponsel', () => {
+  it('tombol Keuangan tidak menyusut di bawah lebar labelnya', () => {
+    pasangState((s) => s);
+    render(<LayarPapan />);
+    const keuangan = screen.getByRole('button', { name: 'Keuangan' });
+    expect(keuangan.className).toContain('shrink-0');
+  });
+
+  it('tombol dadu yang meminta seluruh baris tidak ikut kaku', () => {
+    pasangState((s) => s);
+    render(<LayarPapan />);
+    expect(tombolDadu().className).not.toContain('shrink-0');
+  });
+});

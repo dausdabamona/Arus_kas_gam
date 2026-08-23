@@ -201,7 +201,7 @@ export function LayarPapan() {
         >
           Lempar dadu{daduTerakhir ? ` · ${daduTerakhir}` : ''}
         </Tombol>
-        <Tombol jenis="kedua" onClick={() => setLaporanTerbuka(true)}>
+        <Tombol jenis="kedua" takMenyusut onClick={() => setLaporanTerbuka(true)}>
           Keuangan
         </Tombol>
       </div>
