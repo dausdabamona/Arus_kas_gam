@@ -171,7 +171,18 @@ export function LayarPapan() {
 
       {darurat && <LembarDarurat />}
 
-      <div className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md gap-2 bg-ivory p-4">
+      {/*
+        Bilah ini `fixed`, jadi bantalan body tidak menyentuhnya sama sekali:
+        `bottom-0` berarti tepi bawah VIEWPORT, dan di Android tepi-ke-tepi
+        tepi itu berada di balik bilah navigasi. Sampai 0.8.2, "Lempar dadu"
+        dan "Keuangan" memang tertutup separuh di HP sungguhan.
+
+        Kiri-kanan ikut dihitung untuk layar berlekuk saat dimiringkan; di
+        potret keduanya nol dan tidak menggeser apa pun.
+      */}
+      <div
+        className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md gap-2 bg-ivory p-4 pb-[calc(1rem+var(--aman-bawah))] pl-[calc(1rem+var(--aman-kiri))] pr-[calc(1rem+var(--aman-kanan))]"
+      >
         <Tombol
           onClick={() => void kirim({ tipe: 'LEMPAR_DADU', isi: { pemainId: 'p1' } })}
           disabled={

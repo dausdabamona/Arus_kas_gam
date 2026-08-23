@@ -3,12 +3,48 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+    Tepi aman perangkat — satu sumber untuk seluruh produk.
+
+    DUA mekanisme, bukan satu. Peramban dan iOS mengisi `env(safe-area-inset-*)`.
+    WebView Android di bawah Capacitor 8 tidak selalu: `SystemBars` menyuntikkan
+    properti kustom `--safe-area-inset-*` ke <html> lewat JavaScript, dan baru
+    ikut meneruskan env() bila versi WebView-nya 140 ke atas. Di WebView lama
+    env() bernilai nol sementara variabelnya berisi angka yang benar.
+
+    `max()` memungut mana pun yang terisi. Menjumlahkannya akan menggandakan
+    bantalan di WebView baru, tempat keduanya berisi angka yang sama.
+
+    Ditulis sesudah 0.8.2 terpasang di HP sungguhan: judul LINGKAR HARIAN
+    tertindih bilah status, tombol Lempar dadu dan Keuangan tertutup bilah
+    navigasi. Sebabnya bukan kelupaan satu layar — targetSdk 36 memaksa
+    tampilan tepi-ke-tepi, dan tidak ada satu pun layar yang menganggarkan
+    ruang untuk bilah sistem.
+  */
+  :root {
+    --aman-atas: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    --aman-bawah: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+    --aman-kiri: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+    --aman-kanan: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  }
   html {
     -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-ivory text-tinta font-sans antialiased;
     overscroll-behavior-y: none;
+    /*
+      Bantalan dipasang sekali di body, bukan diingat ulang di tiap layar.
+      Layar yang harus mengingat sendiri adalah layar yang lupa: sampai 0.8.2,
+      empat dari lima <main> tidak menyebut area aman sama sekali.
+
+      Unsur `fixed` tidak ikut terbantu — ia diukur dari viewport, bukan dari
+      body — jadi dua tempat itu menyebut variabelnya langsung.
+    */
+    padding-top: var(--aman-atas);
+    padding-bottom: var(--aman-bawah);
+    padding-left: var(--aman-kiri);
+    padding-right: var(--aman-kanan);
   }
   /*
     Target sentuh minimal 44x44 (§13.1). Aturan ini ditulis di Fase 0 untuk

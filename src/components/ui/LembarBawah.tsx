@@ -31,7 +31,7 @@ export function LembarBawah({ judul, terbuka, onTutup, bisaDitutup = true, child
   if (!terbuka) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-tinta/40">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-tinta/40 pt-[var(--aman-atas)]">
       {/*
         `max-h-full` mengikat panel ke tinggi layar — induknya `fixed inset-0`,
         jadi "full" di sini persis setinggi viewport, tanpa perlu vh maupun dvh
@@ -46,6 +46,10 @@ export function LembarBawah({ judul, terbuka, onTutup, bisaDitutup = true, child
         Ini menyentuh SEMUA lembar, bukan cuma laporan: kartu, Jeda, panen,
         darurat. Di layar lebar tidak pernah terlihat karena isinya selalu
         muat.
+
+        Bantalan atas di induknya memotong "full" tepat di bawah bilah status:
+        tanpa itu, lembar yang setinggi layar menaruh judul dan tombol tutupnya
+        di balik jam dan ikon baterai.
       */}
       <div
         role="dialog"
@@ -74,10 +78,14 @@ export function LembarBawah({ judul, terbuka, onTutup, bisaDitutup = true, child
           `overscroll-contain` menahan gulirannya di dalam lembar. Bantalan
           bawah menambahkan area aman perangkat, sebab bilah navigasi Android
           menutupi baris terakhir — itulah yang memotong "Kekayaan bersih".
+
+          Dipakai lewat `--aman-bawah`, bukan `env()` langsung: di WebView
+          Android lama env() bernilai nol, jadi bantalan yang ditulis di 0.8.2
+          sebenarnya tidak pernah menambah apa pun di perangkat.
         */}
         <div
           data-isi-lembar
-          className="overflow-y-auto overscroll-contain px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]"
+          className="overflow-y-auto overscroll-contain px-5 pb-[calc(2rem+var(--aman-bawah))]"
         >
           {children}
         </div>

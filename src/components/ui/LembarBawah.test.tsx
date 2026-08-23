@@ -64,10 +64,30 @@ describe('lembar bawah tidak pernah tumbuh melewati layar', () => {
   /**
    * Bilah navigasi Android menutupi baris terakhir — itulah yang memotong
    * "Kekayaan bersih" di tangkapan layar HP.
+   *
+   * Dituntut lewat `--aman-bawah`, bukan `env()`. Sampai 0.8.2 tes ini hijau
+   * dengan `env(safe-area-inset-bottom)` sementara di perangkat bantalannya
+   * nol: WebView Android di bawah Capacitor menyuntikkan angkanya sebagai
+   * properti kustom, dan env() baru ikut terisi mulai WebView 140.
    */
   it('bantalan bawahnya menghitung area aman perangkat', () => {
     const wadah = pasang().querySelector('[data-isi-lembar]');
-    expect(wadah!.className).toContain('safe-area-inset-bottom');
+    expect(wadah!.className).toContain('var(--aman-bawah)');
+  });
+
+  it('tidak memakai env() sendirian — di WebView Android nilainya nol', () => {
+    const wadah = pasang().querySelector('[data-isi-lembar]');
+    expect(wadah!.className).not.toContain('env(safe-area-inset');
+  });
+
+  /**
+   * Lembar setinggi layar menaruh judul dan tombol tutupnya di balik jam dan
+   * ikon baterai. Bantalan atas ada di latarnya, bukan di panelnya: `max-h-full`
+   * diukur dari induk itu, jadi memangkas induknya memangkas panelnya juga.
+   */
+  it('latarnya menyisakan ruang bilah status di atas', () => {
+    const latar = pasang().parentElement;
+    expect(latar!.className).toContain('var(--aman-atas)');
   });
 
   it('judulnya tidak ikut hanyut — tombol tutup harus tetap terjangkau', () => {
